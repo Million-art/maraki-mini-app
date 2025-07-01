@@ -1,6 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { HelpCircle, CheckCircle, XCircle, Clock, Trophy, ArrowRight, RotateCcw } from "lucide-react";
+
+interface QuizPageContext {
+  isDarkMode: boolean;
+}
 
 interface Question {
   id: string;
@@ -10,8 +15,6 @@ interface Question {
   explanation: string;
   category: string;
 }
-
-interface QuizPageProps {}
 
 const mockQuestions: Question[] = [
   {
@@ -68,7 +71,8 @@ const mockQuestions: Question[] = [
   }
 ];
 
-export default function QuizPage({}: QuizPageProps) {
+export default function QuizPage() {
+  const { isDarkMode } = useOutletContext<QuizPageContext>();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -79,7 +83,7 @@ export default function QuizPage({}: QuizPageProps) {
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  const handleAnswerSelect = useCallback((answerIndex: number) => {
+  const handleAnswerSelect = (answerIndex: number) => {
     if (selectedAnswer !== null) return; // Prevent multiple selections
     setSelectedAnswer(answerIndex);
     setShowExplanation(true);
@@ -87,9 +91,9 @@ export default function QuizPage({}: QuizPageProps) {
     if (answerIndex === currentQuestion.correctAnswer) {
       setScore(prev => prev + 1);
     }
-  }, [selectedAnswer, currentQuestion.correctAnswer]);
+  };
 
-  const handleNextQuestion = useCallback(() => {
+  const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
@@ -98,16 +102,16 @@ export default function QuizPage({}: QuizPageProps) {
     } else {
       setQuizCompleted(true);
     }
-  }, [currentQuestionIndex, questions.length]);
+  };
 
-  const handleRestartQuiz = useCallback(() => {
+  const handleRestartQuiz = () => {
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setShowExplanation(false);
     setScore(0);
     setQuizCompleted(false);
     setTimeLeft(30);
-  }, []);
+  };
 
   const getScorePercentage = () => {
     return Math.round((score / questions.length) * 100);
@@ -123,47 +127,85 @@ export default function QuizPage({}: QuizPageProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className={cn(
+      "flex flex-col h-full transition-colors duration-200",
+      isDarkMode ? "bg-gray-900" : "bg-white"
+    )}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Quiz Challenge</h1>
-        <p className="text-sm text-gray-600">Test your knowledge with interactive quizzes</p>
+      <header className={cn(
+        "flex items-center justify-between p-4 border-b",
+        isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+      )}>
+        <h1 className={cn(
+          "text-lg font-semibold",
+          isDarkMode ? "text-white" : "text-gray-900"
+        )}>
+          Quiz Challenge
+        </h1>
+        <HelpCircle className={cn(
+          "w-6 h-6",
+          isDarkMode ? "text-gray-400" : "text-gray-600"
+        )} />
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">
         {!quizCompleted ? (
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Progress Bar */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className={cn(
+              "bg-white rounded-lg border border-gray-200 p-4",
+              isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+            )}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <HelpCircle className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className={cn(
+                    "text-sm font-medium",
+                    isDarkMode ? "text-gray-400" : "text-gray-700"
+                  )}>
                     Question {currentQuestionIndex + 1} of {questions.length}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className={cn(
+                    "text-sm font-medium",
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  )}>
                     {timeLeft}s
                   </span>
                 </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className={cn(
+                "w-full bg-gray-200 rounded-full h-2",
+                isDarkMode ? "bg-gray-700" : "bg-gray-200"
+              )}>
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className={cn(
+                    "bg-blue-600 h-2 rounded-full transition-all duration-300",
+                    isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                  )}
                   style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
                 />
               </div>
             </div>
 
             {/* Question Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className={cn(
+              "bg-white rounded-lg border border-gray-200 p-6",
+              isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+            )}>
               <div className="mb-4">
-                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">
+                <span className={cn(
+                  "inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3",
+                  isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-800"
+                )}>
                   {currentQuestion.category}
                 </span>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className={cn(
+                  "text-lg font-semibold",
+                  isDarkMode ? "text-white" : "text-gray-900"
+                )}>
                   {currentQuestion.question}
                 </h2>
               </div>
@@ -209,9 +251,18 @@ export default function QuizPage({}: QuizPageProps) {
 
               {/* Explanation */}
               {showExplanation && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-blue-900 mb-2">Explanation:</h3>
-                  <p className="text-sm text-blue-800">
+                <div className={cn(
+                  "bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6",
+                  isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+                )}>
+                  <h3 className={cn(
+                    "font-semibold",
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  )}>Explanation:</h3>
+                  <p className={cn(
+                    "text-sm",
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  )}>
                     {currentQuestion.explanation}
                   </p>
                 </div>
@@ -222,7 +273,10 @@ export default function QuizPage({}: QuizPageProps) {
                 <div className="flex justify-end">
                   <button
                     onClick={handleNextQuestion}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors",
+                      isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-500 hover:bg-blue-600"
+                    )}
                   >
                     {currentQuestionIndex < questions.length - 1 ? "Next Question" : "Finish Quiz"}
                     <ArrowRight className="w-4 h-4" />
@@ -234,27 +288,45 @@ export default function QuizPage({}: QuizPageProps) {
         ) : (
           /* Quiz Results */
           <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <div className={cn(
+              "bg-white rounded-lg border border-gray-200 p-8 text-center",
+              isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+            )}>
               <Trophy className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className={cn(
+                "text-2xl font-bold",
+                isDarkMode ? "text-white" : "text-gray-900"
+              )}>
                 Quiz Completed!
               </h2>
-              <p className="text-lg text-gray-600 mb-6">
+              <p className={cn(
+                "text-lg text-gray-600 mb-6",
+                isDarkMode ? "text-gray-400" : "text-gray-700"
+              )}>
                 Your score: {score} out of {questions.length}
               </p>
               
               <div className="mb-6">
-                <div className="text-4xl font-bold text-green-600 mb-2">
+                <div className={cn(
+                  "text-4xl font-bold",
+                  isDarkMode ? "text-white" : "text-gray-900"
+                )}>
                   {getScorePercentage()}%
                 </div>
-                <div className="text-lg font-medium text-gray-700">
+                <div className={cn(
+                  "text-lg font-medium",
+                  isDarkMode ? "text-gray-400" : "text-gray-700"
+                )}>
                   {getScoreMessage()}
                 </div>
               </div>
 
               <button
                 onClick={handleRestartQuiz}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors mx-auto"
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors mx-auto",
+                  isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-500 hover:bg-blue-600"
+                )}
               >
                 <RotateCcw className="w-4 h-4" />
                 Take Quiz Again

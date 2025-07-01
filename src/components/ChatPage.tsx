@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { Send, Loader2, AlertTriangle, Menu } from "lucide-react";
 
@@ -10,7 +11,7 @@ interface Message {
   error?: boolean;
 }
 
-interface ChatPageProps {
+interface ChatPageContext {
   onMenuClick: () => void;
   isDarkMode: boolean;
 }
@@ -24,7 +25,8 @@ const initialMessages: Message[] = [
   },
 ];
 
-export default function ChatPage({ onMenuClick, isDarkMode }: ChatPageProps) {
+export default function ChatPage() {
+  const { onMenuClick, isDarkMode } = useOutletContext<ChatPageContext>();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

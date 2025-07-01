@@ -1,283 +1,344 @@
-import { useState, useCallback } from "react";
-import { Users, Share2, Copy, Gift, TrendingUp, UserPlus, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { Users, Share2, Copy, CheckCircle, Gift } from "lucide-react";
 
-interface ReferralStats {
-  totalReferrals: number;
-  successfulReferrals: number;
-  pendingReferrals: number;
-  totalEarnings: number;
-  referralCode: string;
+interface ReferralPageContext {
+  isDarkMode: boolean;
 }
 
-interface ReferralHistory {
-  id: string;
-  name: string;
-  email: string;
-  status: "completed" | "pending" | "failed";
-  date: Date;
-  earnings: number;
-}
-
-interface ReferralPageProps {}
-
-const mockReferralStats: ReferralStats = {
-  totalReferrals: 12,
-  successfulReferrals: 8,
-  pendingReferrals: 4,
-  totalEarnings: 240,
-  referralCode: "MINIAPP2024",
-};
-
-const mockReferralHistory: ReferralHistory[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    status: "completed",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-    earnings: 30,
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    status: "pending",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    earnings: 0,
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    email: "mike@example.com",
-    status: "completed",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
-    earnings: 30,
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    email: "sarah@example.com",
-    status: "completed",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
-    earnings: 30,
-  },
-];
-
-export default function ReferralPage({}: ReferralPageProps) {
-  const [referralStats] = useState<ReferralStats>(mockReferralStats);
-  const [referralHistory] = useState<ReferralHistory[]>(mockReferralHistory);
+export default function ReferralPage() {
+  const { isDarkMode } = useOutletContext<ReferralPageContext>();
   const [copied, setCopied] = useState(false);
 
-  const copyReferralCode = useCallback(async () => {
+  const referralStats = {
+    totalReferrals: 12,
+    successfulReferrals: 8,
+    pendingReferrals: 4,
+    totalEarnings: 240,
+    thisMonth: 60,
+  };
+
+  const referralHistory = [
+    {
+      id: 1,
+      name: "John Doe",
+      email: "john@example.com",
+      status: "completed",
+      date: "2024-01-15",
+      earnings: 30,
+    },
+    {
+      id: 2,
+      name: "Jane Smith",
+      email: "jane@example.com",
+      status: "pending",
+      date: "2024-01-14",
+      earnings: 0,
+    },
+    {
+      id: 3,
+      name: "Mike Johnson",
+      email: "mike@example.com",
+      status: "completed",
+      date: "2024-01-13",
+      earnings: 30,
+    },
+    {
+      id: 4,
+      name: "Sarah Wilson",
+      email: "sarah@example.com",
+      status: "completed",
+      date: "2024-01-12",
+      earnings: 30,
+    },
+  ];
+
+  const referralCode = "FRIEND2024";
+
+  const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(referralStats.referralCode);
+      await navigator.clipboard.writeText(referralCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy referral code:', err);
+      console.error("Failed to copy: ", err);
     }
-  }, [referralStats.referralCode]);
+  };
 
-  const shareReferral = useCallback(async () => {
-    const shareText = `Join me on Mini App! Use my referral code: ${referralStats.referralCode}`;
-    
+  const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Mini App Referral',
-          text: shareText,
-          url: 'https://miniapp.com',
+          title: "Join me on this amazing platform!",
+          text: `Use my referral code ${referralCode} to get started!`,
+          url: "https://example.com/referral",
         });
       } catch (err) {
-        console.error('Failed to share:', err);
+        console.error("Error sharing: ", err);
       }
     } else {
-      try {
-        await navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy share text:', err);
-      }
+      handleCopyCode();
     }
-  }, [referralStats.referralCode]);
+  };
 
-  const getStatusColor = (status: ReferralHistory["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
         return "text-green-600 bg-green-100";
       case "pending":
         return "text-yellow-600 bg-yellow-100";
-      case "failed":
-        return "text-red-600 bg-red-100";
       default:
         return "text-gray-600 bg-gray-100";
     }
   };
 
-  const formatDate = (date: Date): string => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return "Today";
-    } else if (days === 1) {
-      return "Yesterday";
-    } else if (days < 7) {
-      return `${days} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
-
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className={cn(
+      "flex flex-col h-full transition-colors duration-200",
+      isDarkMode ? "bg-gray-900" : "bg-white"
+    )}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Referral Program</h1>
-        <p className="text-sm text-gray-600">Invite friends and earn rewards together</p>
+      <header className={cn(
+        "flex items-center justify-between p-4 border-b",
+        isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+      )}>
+        <h1 className={cn(
+          "text-lg font-semibold",
+          isDarkMode ? "text-white" : "text-gray-900"
+        )}>
+          Referral Program
+        </h1>
+        <Users className={cn(
+          "w-6 h-6",
+          isDarkMode ? "text-gray-400" : "text-gray-600"
+        )} />
       </header>
 
+      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-gray-500">
-                Total Referrals
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              {referralStats.totalReferrals}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <UserPlus className="w-6 h-6 text-green-600" />
-              <span className="text-sm font-medium text-gray-500">
-                Successful
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              {referralStats.successfulReferrals}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="w-6 h-6 text-yellow-600" />
-              <span className="text-sm font-medium text-gray-500">
-                Pending
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              {referralStats.pendingReferrals}
+          <div className={cn(
+            "p-4 rounded-lg border",
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn(
+                  "text-xs font-medium",
+                  isDarkMode ? "text-gray-400" : "text-gray-600"
+                )}>
+                  Total Referrals
+                </p>
+                <p className={cn(
+                  "text-2xl font-bold",
+                  isDarkMode ? "text-white" : "text-gray-900"
+                )}>
+                  {referralStats.totalReferrals}
+                </p>
+              </div>
+              <Users className={cn(
+                "w-8 h-8",
+                isDarkMode ? "text-blue-400" : "text-blue-500"
+              )} />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <Gift className="w-6 h-6 text-purple-600" />
-              <span className="text-sm font-medium text-gray-500">
-                Total Earnings
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              ${referralStats.totalEarnings}
+          <div className={cn(
+            "p-4 rounded-lg border",
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn(
+                  "text-xs font-medium",
+                  isDarkMode ? "text-gray-400" : "text-gray-600"
+                )}>
+                  Total Earnings
+                </p>
+                <p className={cn(
+                  "text-2xl font-bold",
+                  isDarkMode ? "text-white" : "text-gray-900"
+                )}>
+                  ${referralStats.totalEarnings}
+                </p>
+              </div>
+              <Gift className={cn(
+                "w-8 h-8",
+                isDarkMode ? "text-green-400" : "text-green-500"
+              )} />
             </div>
           </div>
         </div>
 
         {/* Referral Code Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className={cn(
+          "p-4 rounded-lg border",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        )}>
+          <h3 className={cn(
+            "font-semibold mb-3",
+            isDarkMode ? "text-white" : "text-gray-900"
+          )}>
             Your Referral Code
-          </h2>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 p-3 rounded-lg border border-gray-300 bg-gray-50 font-mono text-lg text-gray-900">
-              {referralStats.referralCode}
+          </h3>
+          <div className="flex items-center gap-2 mb-4">
+            <div className={cn(
+              "flex-1 p-3 rounded-lg border font-mono text-lg font-bold text-center",
+              isDarkMode 
+                ? "bg-gray-700 border-gray-600 text-white" 
+                : "bg-gray-50 border-gray-300 text-gray-900"
+            )}>
+              {referralCode}
             </div>
             <button
-              onClick={copyReferralCode}
+              onClick={handleCopyCode}
               className={cn(
-                "p-3 rounded-lg border transition-colors flex items-center gap-2",
+                "p-3 rounded-lg border transition-colors",
                 copied
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-gray-300 hover:bg-gray-50 text-gray-700"
+                  ? "border-green-500 bg-green-50"
+                  : isDarkMode
+                  ? "border-gray-600 hover:bg-gray-700"
+                  : "border-gray-300 hover:bg-gray-50"
               )}
             >
               {copied ? (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Copied!</span>
-                </>
+                <CheckCircle className="w-5 h-5 text-green-500" />
               ) : (
-                <>
-                  <Copy className="w-5 h-5" />
-                  <span className="text-sm font-medium">Copy</span>
-                </>
+                <Copy className="w-5 h-5" />
               )}
             </button>
           </div>
           <button
-            onClick={shareReferral}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            onClick={handleShare}
+            className={cn(
+              "w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2",
+              isDarkMode
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-blue-500 hover:bg-blue-600 text-white"
+            )}
           >
-            <Share2 className="w-5 h-5" />
-            Share Referral
+            <Share2 className="w-4 h-4" />
+            Share Referral Link
           </button>
         </div>
 
-        {/* Referral History */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Referral History
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {referralHistory.length === 0 ? (
-              <div className="p-8 text-center">
-                <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No referrals yet
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Start sharing your referral code to see your history here
-                </p>
+        {/* How It Works */}
+        <div className={cn(
+          "p-4 rounded-lg border",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        )}>
+          <h3 className={cn(
+            "font-semibold mb-3",
+            isDarkMode ? "text-white" : "text-gray-900"
+          )}>
+            How It Works
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                isDarkMode ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+              )}>
+                1
               </div>
-            ) : (
-              referralHistory.map((referral) => (
-                <div key={referral.id} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{referral.name}</h4>
-                      <p className="text-sm text-gray-500">{referral.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={cn(
-                        "px-2 py-1 rounded-full text-xs font-medium",
-                        getStatusColor(referral.status)
-                      )}>
-                        {referral.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">
-                      {formatDate(referral.date)}
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      ${referral.earnings}
-                    </span>
-                  </div>
+              <p className={cn(
+                "text-sm",
+                isDarkMode ? "text-gray-300" : "text-gray-600"
+              )}>
+                Share your referral code with friends
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                isDarkMode ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+              )}>
+                2
+              </div>
+              <p className={cn(
+                "text-sm",
+                isDarkMode ? "text-gray-300" : "text-gray-600"
+              )}>
+                They sign up using your code
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                isDarkMode ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+              )}>
+                3
+              </div>
+              <p className={cn(
+                "text-sm",
+                isDarkMode ? "text-gray-300" : "text-gray-600"
+              )}>
+                You both earn $30 when they complete their first task
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Referral History */}
+        <div className={cn(
+          "p-4 rounded-lg border",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        )}>
+          <h3 className={cn(
+            "font-semibold mb-3",
+            isDarkMode ? "text-white" : "text-gray-900"
+          )}>
+            Referral History
+          </h3>
+          <div className="space-y-3">
+            {referralHistory.map((referral) => (
+              <div
+                key={referral.id}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-lg border",
+                  isDarkMode ? "border-gray-600" : "border-gray-200"
+                )}
+              >
+                <div className="flex-1">
+                  <p className={cn(
+                    "font-medium text-sm",
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  )}>
+                    {referral.name}
+                  </p>
+                  <p className={cn(
+                    "text-xs",
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  )}>
+                    {referral.email}
+                  </p>
+                  <p className={cn(
+                    "text-xs",
+                    isDarkMode ? "text-gray-500" : "text-gray-500"
+                  )}>
+                    {new Date(referral.date).toLocaleDateString()}
+                  </p>
                 </div>
-              ))
-            )}
+                <div className="text-right">
+                  <span className={cn(
+                    "inline-block px-2 py-1 rounded-full text-xs font-medium",
+                    getStatusColor(referral.status)
+                  )}>
+                    {referral.status}
+                  </span>
+                  {referral.earnings > 0 && (
+                    <p className={cn(
+                      "text-sm font-medium mt-1",
+                      isDarkMode ? "text-green-400" : "text-green-600"
+                    )}>
+                      +${referral.earnings}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
