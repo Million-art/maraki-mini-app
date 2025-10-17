@@ -1,0 +1,173 @@
+export interface UsageInfo {
+  used: number;
+  limit: number | string;
+  remaining: string;
+}
+
+export interface UsageSummary {
+  user_id: number;
+  subscription_tier: 'free' | 'pro';
+  usage: {
+    text_chat: UsageInfo;
+    voice_input: UsageInfo;
+    quiz_access: UsageInfo;
+    material_access: UsageInfo;
+  };
+  last_reset: string;
+}
+
+export interface FeatureAccessResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    current_usage: number;
+    limit: number | string;
+    tier: string;
+  };
+}
+
+class SubscriptionService {
+  private baseUrl = 'http://localhost:8000/api/users'; // Update with your backend URL
+
+  async checkFeatureAccess(userId: number, feature: string): Promise<FeatureAccessResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/feature/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          feature: feature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking feature access:', error);
+      return {
+        success: false,
+        message: 'Failed to check feature access',
+      };
+    }
+  }
+
+  async useFeature(userId: number, feature: string): Promise<FeatureAccessResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/feature/use`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          feature: feature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error using feature:', error);
+      return {
+        success: false,
+        message: 'Failed to use feature',
+      };
+    }
+  }
+
+  async getUsageSummary(userId: number): Promise<UsageSummary | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${userId}/usage`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting usage summary:', error);
+      return null;
+    }
+  }
+
+  async upgradeSubscription(userId: number, tier: 'free' | 'pro'): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/upgrade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          tier: tier,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('Error upgrading subscription:', error);
+      return false;
+    }
+  }
+
+  // Mini-app specific methods
+  async useQuizAccess(userId: number): Promise<FeatureAccessResponse> {
+    return this.useFeature(userId, 'quiz_access');
+  }
+
+  async useMaterialAccess(userId: number): Promise<FeatureAccessResponse> {
+    return this.useFeature(userId, 'material_access');
+  }
+
+  async checkQuizAccess(userId: number): Promise<FeatureAccessResponse> {
+    return this.checkFeatureAccess(userId, 'quiz_access');
+  }
+
+  async checkMaterialAccess(userId: number): Promise<FeatureAccessResponse> {
+    return this.checkFeatureAccess(userId, 'material_access');
+  }
+}
+
+export const subscriptionService = new SubscriptionService();
+
+// React Hook for subscription management
+export const useSubscription = (userId: number) => {
+  const checkAccess = async (feature: string) => {
+    return await subscriptionService.checkFeatureAccess(userId, feature);
+  };
+
+  const useFeature = async (feature: string) => {
+    return await subscriptionService.useFeature(userId, feature);
+  };
+
+  const getUsage = async () => {
+    return await subscriptionService.getUsageSummary(userId);
+  };
+
+  const upgrade = async (tier: 'free' | 'pro') => {
+    return await subscriptionService.upgradeSubscription(userId, tier);
+  };
+
+  return {
+    checkAccess,
+    useFeature,
+    getUsage,
+    upgrade,
+  };
+};
+
+// Explicit re-exports to ensure all types are available
+export type { UsageInfo, UsageSummary, FeatureAccessResponse }; 

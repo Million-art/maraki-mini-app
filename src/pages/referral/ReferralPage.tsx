@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import { Users, Share2, Copy, CheckCircle, Gift } from "lucide-react";
+import { Skeleton } from "../../components/ui";
 
 interface ReferralPageContext {
   isDarkMode: boolean;
@@ -10,6 +11,16 @@ interface ReferralPageContext {
 export default function ReferralPage() {
   const { isDarkMode } = useOutletContext<ReferralPageContext>();
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading referral data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000); // 1 second loading simulation
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const referralStats = {
     totalReferrals: 12,
@@ -93,11 +104,41 @@ export default function ReferralPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Header Skeleton */}
+        <header className={cn(
+          "flex items-center justify-between p-4 border-b",
+          isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+        )}>
+          <Skeleton height="24px" width="150px" />
+          <Skeleton height="24px" width="24px" variant="circular" />
+        </header>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton height="100px" />
+            <Skeleton height="100px" />
+          </div>
+
+          {/* Referral Code Section Skeleton */}
+          <Skeleton height="120px" />
+
+          {/* How It Works Skeleton */}
+          <Skeleton height="150px" />
+
+          {/* Referral History Skeleton */}
+          <Skeleton height="200px" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn(
-      "flex flex-col h-full transition-colors duration-200",
-      isDarkMode ? "bg-gray-900" : "bg-white"
-    )}>
+    <div className="flex flex-col h-full">
       {/* Header */}
       <header className={cn(
         "flex items-center justify-between p-4 border-b",
