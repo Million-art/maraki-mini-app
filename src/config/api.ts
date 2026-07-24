@@ -86,6 +86,9 @@ export const API_ENDPOINTS = {
   STUDENT_USAGE: (telegramId: number) => `/api/student/usage/${telegramId}`,
   STUDENT_USAGE_INCREMENT: (telegramId: number) => `/api/student/usage/${telegramId}/increment`,
   
+  // Payment Verification
+  VERIFY_BANK_PAYMENT: '/api/student/verify-payment',
+  
   // Health
   HEALTH: '/health',
 } as const;

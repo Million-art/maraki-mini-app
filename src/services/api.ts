@@ -76,3 +76,10 @@ export const studentApi = {
   },
 };
 
+export const paymentApi = {
+  verifyBankPayment: async (data: { telegramId: number; referenceNumber: string; bank?: string; tier?: string }) => {
+    return ApiService.post<{ success: boolean; message: string; result?: any }>(API_ENDPOINTS.VERIFY_BANK_PAYMENT, data);
+  },
+};
+
+
