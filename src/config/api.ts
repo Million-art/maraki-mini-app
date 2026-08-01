@@ -89,6 +89,9 @@ export const API_ENDPOINTS = {
   // Payment Verification
   VERIFY_BANK_PAYMENT: '/api/student/verify-payment',
   
+  // AI Voice Practice
+  VOICE_ANALYZE: '/api/student/voice-analyze',
+  
   // Health
   HEALTH: '/health',
 } as const;

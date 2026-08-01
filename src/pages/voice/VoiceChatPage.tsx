@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw, CheckCircle2, AlertCircle, Play, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { computeWordDiff } from '../../utils/strikethrough.util';
-import type { DiffToken } from '../../utils/strikethrough.util';
+import { computeWordDiff, type DiffToken } from '../../utils/strikethrough.util';
+import { ApiService, API_ENDPOINTS } from '../../config/api';
 
 interface Message {
   id: string;
@@ -151,10 +151,15 @@ export default function VoiceChatPage() {
 
     setMessages((prev) => [...prev, provisionalMsg]);
 
-    // 2. Perform AI Grammar Check & AI Response Simulation / API
-    setTimeout(() => {
-      // Analyze input for intentional grammar fixes
-      const analysis = analyzeGrammar(messageContent);
+    try {
+      // 2. Perform AI Grammar Check & Voice Analysis via Backend API
+      let analysis: any;
+      try {
+        analysis = await ApiService.post(API_ENDPOINTS.VOICE_ANALYZE, { text: messageContent });
+      } catch (apiErr) {
+        console.warn('API analyze fallback to local engine:', apiErr);
+        analysis = analyzeGrammar(messageContent);
+      }
 
       // Update user message with corrected text and grammar metadata
       setMessages((prev) =>
@@ -162,7 +167,7 @@ export default function VoiceChatPage() {
           msg.id === userMessageId
             ? {
                 ...msg,
-                correctedText: analysis.correctedText,
+                correctedText: analysis.correctedText || messageContent,
                 grammarMistake: analysis.hasMistake ? analysis.grammarMistake : undefined,
               }
             : msg
@@ -170,7 +175,7 @@ export default function VoiceChatPage() {
       );
 
       // Generate AI conversation response
-      const aiReplyText = analysis.aiReply;
+      const aiReplyText = analysis.aiReply || "That sounds great! Tell me more in English.";
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -180,12 +185,15 @@ export default function VoiceChatPage() {
       };
 
       setMessages((prev) => [...prev, aiMsg]);
-      setIsProcessing(false);
 
       if (autoPlayAudio) {
         speakText(aiReplyText);
       }
-    }, 1000);
+    } catch (err) {
+      console.error('Error handling voice message:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Dynamic Grammar & AI Response Analysis Engine
