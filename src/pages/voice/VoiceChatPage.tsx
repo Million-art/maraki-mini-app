@@ -198,7 +198,7 @@ export default function VoiceChatPage() {
       try {
         analysis = await ApiService.post(API_ENDPOINTS.VOICE_ANALYZE, { text: messageContent });
       } catch (apiErr) {
-        console.warn('Backend API unavailable, calling direct Gemini AI engine:', apiErr);
+        console.warn('Backend API endpoint unavailable, calling direct Gemini AI engine:', apiErr);
         analysis = await analyzeWithGemini(messageContent, messages);
       }
 
@@ -216,7 +216,7 @@ export default function VoiceChatPage() {
       );
 
       // Generate AI conversation response
-      const aiReplyText = analysis.aiReply || "That's very interesting! Could you tell me more in English?";
+      const aiReplyText = analysis.aiReply;
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -230,8 +230,18 @@ export default function VoiceChatPage() {
       if (autoPlayAudio) {
         speakText(aiReplyText);
       }
-    } catch (err) {
-      console.error('Error handling voice message:', err);
+    } catch (err: any) {
+      console.error('[Gemini AI Voice Error]:', err);
+      const errorMessage = err?.message || 'An error occurred while connecting to Gemini AI.';
+      
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        originalText: `⚠️ Error: ${errorMessage}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsProcessing(false);
     }
@@ -240,6 +250,9 @@ export default function VoiceChatPage() {
   // Real Gemini Flash API call for Voice Analysis & Dynamic Conversation Reply
   const analyzeWithGemini = async (userText: string, history: Message[]) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!apiKey) {
+      throw new Error('VITE_GEMINI_API_KEY is not configured in environment variables.');
+    }
     
     // Pass recent conversation context
     const conversationContext = history
@@ -272,6 +285,8 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
       'gemini-flash-lite-latest',
     ];
 
+    let lastError = '';
+
     for (const modelName of modelsToTry) {
       try {
         const res = await fetch(
@@ -283,6 +298,13 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
           }
         );
         const data = await res.json();
+
+        if (data?.error) {
+          lastError = data.error.message || JSON.stringify(data.error);
+          console.error(`Gemini API Model ${modelName} Error:`, data.error);
+          continue;
+        }
+
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (rawText) {
           const cleaned = rawText.replace(/```json\s*|\s*```/g, '').trim();
@@ -291,73 +313,13 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             return parsed;
           }
         }
-      } catch (err) {
-        console.warn(`Gemini model ${modelName} error:`, err);
+      } catch (err: any) {
+        lastError = err?.message || 'Network request failed';
+        console.error(`Gemini model ${modelName} exception:`, err);
       }
     }
 
-    return analyzeGrammar(userText);
-  };
-
-  // Static pattern fallback if Gemini API is unreachable
-  const analyzeGrammar = (text: string) => {
-    const lower = text.toLowerCase();
-
-    // Pattern 1: Tense errors (e.g. "I goes", "he go", "yesterday I go")
-    if (lower.includes('i goes') || lower.includes('he go') || lower.includes('yesterday i go')) {
-      const corrected = text
-        .replace(/i goes/gi, 'I went')
-        .replace(/he go/gi, 'he goes')
-        .replace(/yesterday i go/gi, 'Yesterday I went');
-
-      return {
-        hasMistake: true,
-        correctedText: corrected,
-        grammarMistake: {
-          type: 'Tense & Agreement',
-          explanation: "Use past tense ('went') for past events like yesterday, and third-person singular ('he goes') for present habits.",
-          nativeAlternative: 'Yesterday, I went to school.',
-        },
-        aiReply: "That sounds interesting! Where did you go yesterday, and who were you with?",
-      };
-    }
-
-    // Pattern 2: Plural errors (e.g. "two childs", "many peoples")
-    if (lower.includes('childs') || lower.includes('peoples')) {
-      const corrected = text
-        .replace(/childs/gi, 'children')
-        .replace(/peoples/gi, 'people');
-
-      return {
-        hasMistake: true,
-        correctedText: corrected,
-        grammarMistake: {
-          type: 'Irregular Plural',
-          explanation: "'Child' becomes 'children' in plural form. 'People' is already plural for person.",
-          nativeAlternative: 'I saw many people at the event.',
-        },
-        aiReply: "Great point! How many people were there altogether?",
-      };
-    }
-
-    // Default clean response with light enhancement
-    let cleanCorrected = text;
-    // Capitalize first letter if needed
-    cleanCorrected = cleanCorrected.charAt(0).toUpperCase() + cleanCorrected.slice(1);
-    if (!cleanCorrected.endsWith('.') && !cleanCorrected.endsWith('?') && !cleanCorrected.endsWith('!')) {
-      cleanCorrected += '.';
-    }
-
-    return {
-      hasMistake: text !== cleanCorrected,
-      correctedText: cleanCorrected,
-      grammarMistake: {
-        type: 'Punctuation & Style',
-        explanation: 'Remember to capitalize the first letter and end with proper punctuation.',
-        nativeAlternative: cleanCorrected,
-      },
-      aiReply: `That's wonderful! Could you tell me more about that?`,
-    };
+    throw new Error(`Gemini AI service error: ${lastError || 'All AI models returned empty response'}`);
   };
 
   // Render Strikethrough Diff Tokens
