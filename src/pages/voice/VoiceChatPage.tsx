@@ -239,7 +239,7 @@ export default function VoiceChatPage() {
 
   // Real Gemini Flash API call for Voice Analysis & Dynamic Conversation Reply
   const analyzeWithGemini = async (userText: string, history: Message[]) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AQ.Ab8RN6K3cZQud0559mCoynTBSSjx9HR0PRv6p1X3-YjdvsfLbw';
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     
     // Pass recent conversation context
     const conversationContext = history
