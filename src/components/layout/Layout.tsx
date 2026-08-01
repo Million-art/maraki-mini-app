@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-import { BookOpen, HelpCircle, Users, Menu, Sun, Moon, X } from 'lucide-react';
+import { BookOpen, HelpCircle, Users, Menu, Sun, Moon, X, Mic } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { toggleDarkMode } from '../../store/slices/uiSlice';
 
@@ -12,10 +12,8 @@ const Layout: React.FC = () => {
   const { isDarkMode } = useAppSelector((state: any) => state.ui);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // In a real app, this would come from authentication context
-
-
   const navigationItems = [
+    { id: "voice", label: "Voice Chat", icon: Mic, path: "/voice-chat" },
     { id: "material", label: "Material", icon: BookOpen, path: "/material" },
     { id: "quiz", label: "Quiz", icon: HelpCircle, path: "/quiz" },
     { id: "referral", label: "Referral", icon: Users, path: "/referral" },

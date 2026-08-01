@@ -6,6 +6,7 @@ import MaterialPage from "./pages/material/MaterialPage";
 import QuizListPage from "./pages/quize/QuizListPage";
 import QuizDetailPage from "./pages/quize/QuizDetailPage";
 import ReferralPage from "./pages/referral/ReferralPage";
+import VoiceChatPage from "./pages/voice/VoiceChatPage";
 
 export default function App() {
   return (
@@ -13,6 +14,8 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
+            <Route index element={<VoiceChatPage />} />
+            <Route path="voice-chat" element={<VoiceChatPage />} />
             <Route path="material" element={<MaterialPage />} />
             <Route path="quiz" element={<QuizListPage />} />
             <Route path="quiz/:quizId" element={<QuizDetailPage />} />
