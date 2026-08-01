@@ -289,15 +289,25 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
     let lastError = '';
 
     for (const modelName of modelsToTry) {
+      const isBearerToken = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
+      const url = isBearerToken
+        ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`
+        : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (isBearerToken) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-          }
-        );
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        });
         const data = await res.json();
 
         if (data?.error) {
