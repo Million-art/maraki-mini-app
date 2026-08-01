@@ -231,13 +231,13 @@ export default function VoiceChatPage() {
         speakText(aiReplyText);
       }
     } catch (err: any) {
-      console.error('[Gemini AI Voice Error]:', err);
-      const errorMessage = err?.message || 'An error occurred while connecting to Gemini AI.';
+      console.error('[Maraki AI Voice Error]:', err);
+      const errorMessage = err?.message || 'An error occurred while connecting to Maraki AI.';
       
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        originalText: `⚠️ Error: ${errorMessage}`,
+        originalText: `⚠️ ${errorMessage}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
@@ -251,7 +251,7 @@ export default function VoiceChatPage() {
   const analyzeWithGemini = async (userText: string, history: Message[]) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     if (!apiKey) {
-      throw new Error('VITE_GEMINI_API_KEY is not configured in environment variables.');
+      throw new Error('Maraki AI API key is not configured in environment variables.');
     }
     
     // Pass recent conversation context
@@ -280,9 +280,10 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 }`;
 
     const modelsToTry = [
-      'gemini-3.1-flash-lite',
+      'gemini-1.5-flash-8b',
+      'gemini-2.0-flash-lite',
       'gemini-1.5-flash',
-      'gemini-flash-lite-latest',
+      'gemini-2.0-flash',
     ];
 
     let lastError = '';
@@ -301,7 +302,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 
         if (data?.error) {
           lastError = data.error.message || JSON.stringify(data.error);
-          console.error(`Gemini API Model ${modelName} Error:`, data.error);
+          console.error(`Maraki AI Model ${modelName} Error:`, data.error);
           continue;
         }
 
@@ -315,11 +316,11 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
         }
       } catch (err: any) {
         lastError = err?.message || 'Network request failed';
-        console.error(`Gemini model ${modelName} exception:`, err);
+        console.error(`Maraki AI model ${modelName} exception:`, err);
       }
     }
 
-    throw new Error(`Gemini AI service error: ${lastError || 'All AI models returned empty response'}`);
+    throw new Error('Maraki AI service is temporarily unavailable. Please try again shortly.');
   };
 
   // Render Strikethrough Diff Tokens
