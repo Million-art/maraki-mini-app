@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw, CheckCircle2, AlertCircle, Play, Info } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw, AlertCircle, Play } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { computeWordDiff, type DiffToken } from '../../utils/strikethrough.util';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
@@ -37,10 +37,10 @@ export default function VoiceChatPage() {
   ]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [, setTranscript] = useState('');
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [, setIsSpeaking] = useState(false);
   const [autoPlayAudio, setAutoPlayAudio] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
