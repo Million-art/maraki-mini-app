@@ -87,14 +87,55 @@ export default function VoiceChatPage() {
     }
   }, []);
 
-  // Text-to-Speech Engine
+  // Pre-load available browser voices
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+
+    const loadVoices = () => {
+      const avail = window.speechSynthesis.getVoices();
+      setVoices(avail);
+    };
+
+    loadVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  // Text-to-Speech Engine with Voice Filtering for Warm, Clear & Natural Audio
   const speakText = (text: string) => {
     if (!('speechSynthesis' in window)) return;
 
-    window.speechSynthesis.cancel(); // stop previous
+    window.speechSynthesis.cancel(); // stop previous playback
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.95;
+    utterance.pitch = 1.05; // Friendly, warm pitch
+
+    const avail = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+
+    if (avail.length > 0) {
+      // Find high-quality natural/Google/Apple English voices
+      const naturalVoice = avail.find(
+        (v) =>
+          v.lang.startsWith('en') &&
+          (v.name.includes('Google') ||
+            v.name.includes('Natural') ||
+            v.name.includes('Premium') ||
+            v.name.includes('Samantha') ||
+            v.name.includes('Karen') ||
+            v.name.includes('Victoria') ||
+            v.name.includes('Jenny') ||
+            v.name.includes('Zira') ||
+            v.name.includes('English'))
+      ) || avail.find((v) => v.lang.startsWith('en'));
+
+      if (naturalVoice) {
+        utterance.voice = naturalVoice;
+      }
+    }
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
@@ -152,13 +193,13 @@ export default function VoiceChatPage() {
     setMessages((prev) => [...prev, provisionalMsg]);
 
     try {
-      // 2. Perform AI Grammar Check & Voice Analysis via Backend API
+      // 2. Perform AI Grammar Check & Voice Analysis via Backend API or Direct Gemini
       let analysis: any;
       try {
         analysis = await ApiService.post(API_ENDPOINTS.VOICE_ANALYZE, { text: messageContent });
       } catch (apiErr) {
-        console.warn('API analyze fallback to local engine:', apiErr);
-        analysis = analyzeGrammar(messageContent);
+        console.warn('Backend API unavailable, calling direct Gemini AI engine:', apiErr);
+        analysis = await analyzeWithGemini(messageContent, messages);
       }
 
       // Update user message with corrected text and grammar metadata
@@ -175,7 +216,7 @@ export default function VoiceChatPage() {
       );
 
       // Generate AI conversation response
-      const aiReplyText = analysis.aiReply || "That sounds great! Tell me more in English.";
+      const aiReplyText = analysis.aiReply || "That's very interesting! Could you tell me more in English?";
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -196,7 +237,69 @@ export default function VoiceChatPage() {
     }
   };
 
-  // Dynamic Grammar & AI Response Analysis Engine
+  // Real Gemini Flash API call for Voice Analysis & Dynamic Conversation Reply
+  const analyzeWithGemini = async (userText: string, history: Message[]) => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AQ.Ab8RN6K3cZQud0559mCoynTBSSjx9HR0PRv6p1X3-YjdvsfLbw';
+    
+    // Pass recent conversation context
+    const conversationContext = history
+      .slice(-4)
+      .map((m) => `${m.sender === 'user' ? 'Student' : 'Tutor'}: ${m.originalText}`)
+      .join('\n');
+
+    const prompt = `You are Maraki AI, an encouraging English voice conversation tutor.
+The student spoke: "${userText}"
+
+Recent conversation context:
+${conversationContext}
+
+Analyze the student's spoken sentence for grammar, tense, word choice, or punctuation mistakes.
+Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
+{
+  "hasMistake": boolean,
+  "correctedText": "Full sentence corrected with proper English grammar, capitalization and punctuation.",
+  "grammarMistake": {
+    "type": "Short mistake type (e.g., Verb Tense, Subject-Verb Agreement, Preposition, Article, Word Choice)",
+    "explanation": "Clear 1-sentence simple explanation of why it was corrected.",
+    "nativeAlternative": "A natural phrase native speakers would use."
+  },
+  "aiReply": "A warm, natural 1-2 sentence response directly answering or continuing the specific conversation topic."
+}`;
+
+    const modelsToTry = [
+      'gemini-3.1-flash-lite',
+      'gemini-1.5-flash',
+      'gemini-flash-lite-latest',
+    ];
+
+    for (const modelName of modelsToTry) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          }
+        );
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const cleaned = rawText.replace(/```json\s*|\s*```/g, '').trim();
+          const parsed = JSON.parse(cleaned);
+          if (parsed.aiReply) {
+            return parsed;
+          }
+        }
+      } catch (err) {
+        console.warn(`Gemini model ${modelName} error:`, err);
+      }
+    }
+
+    return analyzeGrammar(userText);
+  };
+
+  // Static pattern fallback if Gemini API is unreachable
   const analyzeGrammar = (text: string) => {
     const lower = text.toLowerCase();
 
