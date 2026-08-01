@@ -2,10 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./store";
 import Layout from "./components/layout/Layout";
-import MaterialPage from "./pages/material/MaterialPage";
-import QuizListPage from "./pages/quize/QuizListPage";
-import QuizDetailPage from "./pages/quize/QuizDetailPage";
-import ReferralPage from "./pages/referral/ReferralPage";
 import VoiceChatPage from "./pages/voice/VoiceChatPage";
 
 export default function App() {
@@ -15,11 +11,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<VoiceChatPage />} />
-            <Route path="voice-chat" element={<VoiceChatPage />} />
-            <Route path="material" element={<MaterialPage />} />
-            <Route path="quiz" element={<QuizListPage />} />
-            <Route path="quiz/:quizId" element={<QuizDetailPage />} />
-            <Route path="referral" element={<ReferralPage />} />
+            <Route path="*" element={<VoiceChatPage />} />
           </Route>
         </Routes>
       </Router>

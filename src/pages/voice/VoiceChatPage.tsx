@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw, CheckCircle2, AlertCircle, Play, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { computeWordDiff, type DiffToken } from '../../utils/strikethrough.util';
+import { computeWordDiff } from '../../utils/strikethrough.util';
+import type { DiffToken } from '../../utils/strikethrough.util';
 
 interface Message {
   id: string;
