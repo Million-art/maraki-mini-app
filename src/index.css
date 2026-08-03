@@ -173,3 +173,49 @@ h1, h2, .display {
   font-size: 0.75rem;
   display: inline-block;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHARACTER ANIMATION KEYFRAMES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Smooth Eye Blinking */
+@keyframes character-blink {
+  0%, 90%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* Subtle Breathing (Chest/Shoulders rise & fall) */
+@keyframes character-breathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+/* Speech Mouth movement */
+@keyframes character-speak {
+  0%, 100% {
+    transform: scaleY(0.3) scaleX(0.9);
+  }
+  50% {
+    transform: scaleY(1.4) scaleX(1.1);
+  }
+}
+
+.animate-character-blink {
+  animation: character-blink 4s infinite ease-in-out;
+}
+
+.animate-character-breathe {
+  animation: character-breathe 3s infinite ease-in-out;
+}
+
+.animate-character-speak {
+  animation: character-speak 0.18s infinite ease-in-out;
+}
