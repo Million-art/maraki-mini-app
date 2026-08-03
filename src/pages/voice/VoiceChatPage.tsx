@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw, AlertCircle, Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft,
+  Bell,
+  Mic,
+  MicOff,
+  Sparkles,
+  Send,
+  AlertCircle,
+  Play,
+  Paperclip,
+  Pencil
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { computeWordDiff, type DiffToken } from '../../utils/strikethrough.util';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
@@ -104,20 +116,19 @@ export default function VoiceChatPage() {
     }
   }, []);
 
-  // Text-to-Speech Engine with Voice Filtering for Warm, Clear & Natural Audio
+  // Text-to-Speech Engine
   const speakText = (text: string) => {
     if (!('speechSynthesis' in window)) return;
 
-    window.speechSynthesis.cancel(); // stop previous playback
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.95;
-    utterance.pitch = 1.05; // Friendly, warm pitch
+    utterance.pitch = 1.05;
 
     const avail = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
 
     if (avail.length > 0) {
-      // Find high-quality natural/Google/Apple English voices
       const naturalVoice = avail.find(
         (v) =>
           v.lang.startsWith('en') &&
@@ -165,7 +176,7 @@ export default function VoiceChatPage() {
     }
   };
 
-  // Process and send user message with AI Grammar Correction
+  // Process and send user message
   const handleSendMessage = async (textToSend?: string) => {
     const messageContent = (textToSend || inputText).trim();
     if (!messageContent || isProcessing) return;
@@ -182,7 +193,6 @@ export default function VoiceChatPage() {
     const userMessageId = Date.now().toString();
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Add provisional user message
     const provisionalMsg: Message = {
       id: userMessageId,
       sender: 'user',
@@ -193,7 +203,6 @@ export default function VoiceChatPage() {
     setMessages((prev) => [...prev, provisionalMsg]);
 
     try {
-      // 2. Perform AI Grammar Check & Voice Analysis via Backend API or Direct Gemini
       let analysis: any;
       try {
         analysis = await ApiService.post(API_ENDPOINTS.VOICE_ANALYZE, { text: messageContent });
@@ -202,20 +211,18 @@ export default function VoiceChatPage() {
         analysis = await analyzeWithGemini(messageContent, messages);
       }
 
-      // Update user message with corrected text and grammar metadata
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === userMessageId
             ? {
-                ...msg,
-                correctedText: analysis.correctedText || messageContent,
-                grammarMistake: analysis.hasMistake ? analysis.grammarMistake : undefined,
-              }
+              ...msg,
+              correctedText: analysis.correctedText || messageContent,
+              grammarMistake: analysis.hasMistake ? analysis.grammarMistake : undefined,
+            }
             : msg
         )
       );
 
-      // Generate AI conversation response
       const aiReplyText = analysis.aiReply;
 
       const aiMsg: Message = {
@@ -233,7 +240,7 @@ export default function VoiceChatPage() {
     } catch (err: any) {
       console.error('[Maraki AI Voice Error]:', err);
       const errorMessage = err?.message || 'An error occurred while connecting to Maraki AI.';
-      
+
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
@@ -247,14 +254,13 @@ export default function VoiceChatPage() {
     }
   };
 
-  // Real Gemini Flash API call for Voice Analysis & Dynamic Conversation Reply
+  // Direct Gemini analysis fallback
   const analyzeWithGemini = async (userText: string, history: Message[]) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     if (!apiKey) {
       throw new Error('Maraki AI API key is not configured in environment variables.');
     }
-    
-    // Pass recent conversation context
+
     const conversationContext = history
       .slice(-4)
       .map((m) => `${m.sender === 'user' ? 'Student' : 'Tutor'}: ${m.originalText}`)
@@ -302,7 +308,6 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 
         if (data?.error) {
           lastError = data.error.message || JSON.stringify(data.error);
-          console.error(`Maraki AI Model ${modelName} Error:`, data.error);
           continue;
         }
 
@@ -316,14 +321,12 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
         }
       } catch (err: any) {
         lastError = err?.message || 'Network request failed';
-        console.error(`Maraki AI model ${modelName} exception:`, err);
       }
     }
 
-    throw new Error('Maraki AI service is temporarily unavailable. Please try again shortly.');
+    throw new Error('Maraki AI service is temporarily unavailable. Please try again shortly. ' + lastError);
   };
 
-  // Render Strikethrough Diff Tokens
   const renderStrikethroughMessage = (msg: Message) => {
     if (!msg.correctedText || msg.originalText === msg.correctedText) {
       return <span>{msg.originalText}</span>;
@@ -338,7 +341,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             return (
               <span
                 key={idx}
-                className="line-through text-red-500 bg-red-100 dark:bg-red-950/60 px-1 py-0.5 rounded font-medium text-xs sm:text-sm"
+                className="line-through text-orange bg-orange/10 px-1 py-0.5 rounded font-medium text-xs sm:text-sm"
               >
                 {token.text}
               </span>
@@ -348,87 +351,188 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             return (
               <span
                 key={idx}
-                className="text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1 py-0.5 rounded font-semibold text-xs sm:text-sm"
+                className="text-dark bg-lime px-1 py-0.5 rounded font-bold text-xs sm:text-sm"
               >
                 {token.text}
               </span>
             );
           }
-          return <span key={idx}>{token.text}</span>;
+          return <span key={idx} className="text-white">{token.text}</span>;
         })}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto">
-      {/* Header Bar */}
-      <div
-        className={cn(
-          'flex items-center justify-between px-4 py-3 border-b shadow-sm',
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow">
-            🎙️
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold leading-tight">Voice Practice & AI Correction</h2>
-            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Real-time Speech Active
-            </p>
-          </div>
-        </div>
+    <div className="flex flex-col h-full bg-light text-dark font-sans select-none overflow-hidden max-w-md mx-auto relative shadow-2xl rounded-[32px] border-4 border-white/20">
 
-        {/* Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAutoPlayAudio(!autoPlayAudio)}
-            className={cn(
-              'p-2 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors',
-              autoPlayAudio
-                ? isDarkMode
-                  ? 'bg-blue-900/40 text-blue-400 border border-blue-800'
-                  : 'bg-blue-50 text-blue-600 border border-blue-200'
-                : isDarkMode
-                ? 'bg-gray-700 text-gray-400'
-                : 'bg-gray-100 text-gray-500'
-            )}
-          >
-            {autoPlayAudio ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden sm:inline">{autoPlayAudio ? 'Voice ON' : 'Mute'}</span>
-          </button>
-
-          <button
-            onClick={() =>
-              setMessages([
-                {
-                  id: '1',
-                  sender: 'ai',
-                  originalText: "👋 Chat reset! Tap the microphone below to start practicing speaking English.",
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                },
-              ])
-            }
-            className={cn(
-              'p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors',
-              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            )}
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
+      {/* Top Header Mockup */}
+      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-light-dim shrink-0">
+        <button className="w-10 h-10 rounded-full flex items-center justify-center bg-light text-dark hover:bg-light-dim active:scale-95 transition-all">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-base tracking-wide text-dark uppercase">AI Chat</span>
+        <button className="w-10 h-10 rounded-full flex items-center justify-center bg-light text-dark hover:bg-light-dim active:scale-95 transition-all relative">
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-orange animate-pulse" />
+        </button>
       </div>
 
-      {/* Suggested Topics Chips */}
-      <div
-        className={cn(
-          'px-3 py-2 border-b flex gap-2 overflow-x-auto no-scrollbar text-xs',
-          isDarkMode ? 'bg-gray-800/60 border-gray-700/60' : 'bg-gray-50/80 border-gray-200/80'
-        )}
-      >
+      {/* Main Conversation & Dashboard Area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6 pb-24">
+
+        {/* Banner Grid (Mockup Hero Cards) */}
+        <div className="grid grid-cols-12 gap-4 relative shrink-0">
+
+          {/* Welcome Text & Character Card */}
+          <div className="col-span-7 bg-white rounded-3xl p-4 shadow-sm flex flex-col justify-between border border-light-dim min-h-[190px] relative overflow-hidden">
+            <div>
+              <h1 className="text-3xl font-display text-orange leading-none tracking-tight">
+                Welcome<br />Back!
+              </h1>
+            </div>
+
+            {/* Styled Character Avatar Placeholder */}
+            <div className="absolute right-2 bottom-6 w-24 h-32 flex items-end justify-center">
+              <div className="relative w-full h-full flex items-end">
+                {/* SVG Character illustration representing the redhead mascot */}
+                <svg viewBox="0 0 100 120" className="w-full h-full object-contain">
+                  <defs>
+                    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FC4A01" />
+                      <stop offset="100%" stopColor="#FF7A00" />
+                    </linearGradient>
+                  </defs>
+                  {/* Hair back */}
+                  <path d="M15,50 Q10,15 50,10 Q90,15 85,50 Q80,90 50,85 Q20,90 15,50 Z" fill="url(#hairGrad)" />
+                  {/* Face */}
+                  <ellipse cx="50" cy="50" rx="25" ry="30" fill="#FFDFC4" />
+                  {/* Hair Front Bangs */}
+                  <path d="M28,35 Q50,20 72,35 Q65,15 50,25 Q35,15 28,35 Z" fill="url(#hairGrad)" />
+                  {/* Eyes */}
+                  <circle cx="42" cy="48" r="3.5" fill="#101309" />
+                  <circle cx="58" cy="48" r="3.5" fill="#101309" />
+                  {/* Cheeks */}
+                  <circle cx="38" cy="56" r="4" fill="#FF8A8A" opacity="0.6" />
+                  <circle cx="62" cy="56" r="4" fill="#FF8A8A" opacity="0.6" />
+                  {/* Smile */}
+                  <path d="M45,62 Q50,68 55,62" fill="none" stroke="#FC4A01" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Body / Outfit */}
+                  <path d="M30,80 L70,80 L78,120 L22,120 Z" fill="#C5F400" />
+                  <path d="M50,80 L50,120" stroke="#a8d400" strokeWidth="2" />
+                  {/* Collar */}
+                  <path d="M40,80 Q50,90 60,80" fill="none" stroke="#FFDFC4" strokeWidth="3" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="z-10">
+              <p className="text-[11px] font-bold text-dark/70 leading-tight pr-4">
+                Only 100 coins left to unlock this skin!
+              </p>
+            </div>
+          </div>
+
+          {/* Thursday Sticker / Banner */}
+          <div className="col-span-5 relative flex items-center justify-center">
+            {/* Starburst Burst Shape */}
+            <div className="absolute w-full h-full flex items-center justify-center">
+              <svg viewBox="0 0 100 100" className="w-full h-full fill-lime drop-shadow-sm animate-[spin_60s_linear_infinite]">
+                <path d="M50,0 L57,17 L75,10 L73,28 L90,28 L81,44 L95,54 L79,62 L87,79 L70,74 L70,92 L54,82 L47,98 L37,84 L21,90 L24,72 L7,72 L16,56 L2,46 L18,38 L10,21 L27,26 L27,8 L43,18 Z" />
+              </svg>
+            </div>
+            {/* Date Content in Starburst */}
+            <div className="z-10 text-center select-none font-display">
+              <p className="text-xs font-semibold text-dark/80 tracking-wide leading-none">THURSDAY</p>
+              <p className="text-2xl font-bold text-dark leading-none my-0.5">APR 24</p>
+              <p className="text-[9px] font-bold text-dark/60 leading-tight">Thursday is a great day<br />for chemistry!</p>
+            </div>
+          </div>
+
+          {/* Affirmation Alert Card */}
+          <div className="col-span-12 bg-orange rounded-3xl p-5 text-white shadow-md relative overflow-hidden flex flex-col gap-1 border border-orange-soft">
+            <span className="text-[10px] font-bold tracking-widest text-white/70 uppercase">Your Affirmation</span>
+            <p className="text-sm font-medium italic leading-relaxed pr-8">
+              "I'm lucky with exams. The exam is going well for me!"
+            </p>
+            <button className="absolute right-4 bottom-4 text-white/75 hover:text-white transition-colors">
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+
+        {/* Real Message Thread */}
+        <div className="space-y-4">
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                className={cn('flex flex-col space-y-1', msg.sender === 'user' ? 'items-end' : 'items-start')}
+              >
+                {msg.sender === 'user' ? (
+                  /* User Bubble Styled with Strikethrough Display & Mistakes */
+                  <div className="max-w-[85%] bg-orange text-white rounded-[20px] rounded-br-sm p-4 shadow-sm border border-orange-soft">
+                    <div className="flex items-center justify-between gap-4 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">👤 Spoken</span>
+                      <span className="text-[10px] text-white/50">{msg.timestamp}</span>
+                    </div>
+
+                    <div className="text-sm leading-relaxed">{renderStrikethroughMessage(msg)}</div>
+
+                    {msg.grammarMistake && (
+                      <div className="mt-3 pt-2.5 border-t border-white/20 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between text-lime font-bold uppercase tracking-wider text-[10px]">
+                          <span className="flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            {msg.grammarMistake.type}
+                          </span>
+                          <span>Grammar Tip</span>
+                        </div>
+                        <p className="text-white/90 leading-relaxed">{msg.grammarMistake.explanation}</p>
+                        <div className="bg-black/15 p-2 rounded-xl text-white font-semibold text-[11px]">
+                          💡 Native: "{msg.grammarMistake.nativeAlternative}"
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* AI/Tutor Bubble */
+                  <div className="max-w-[85%] bg-white text-dark rounded-[20px] rounded-bl-sm p-4 shadow-sm border border-light-dim">
+                    <div className="flex items-center justify-between gap-4 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-dark/40">🤖 Tutor</span>
+                      <span className="text-[10px] text-dark/40">{msg.timestamp}</span>
+                    </div>
+                    <p className="text-sm leading-relaxed">{msg.originalText}</p>
+
+                    <button
+                      onClick={() => speakText(msg.originalText)}
+                      className="mt-2 text-xs flex items-center gap-1 text-orange hover:text-orange-soft font-semibold transition-colors"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" /> Listen AI Voice
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {isProcessing && (
+            <div className="flex items-center gap-2 text-xs text-dark/50 italic py-2 font-sans">
+              <Sparkles className="w-4 h-4 animate-spin text-orange" />
+              Analyzing pronunciation & generating reply...
+            </div>
+          )}
+        </div>
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Suggested Topics Drawer - Floating above input */}
+      <div className="absolute bottom-[80px] left-0 right-0 px-6 py-2 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto z-20">
         {TOPICS.map((topic, idx) => (
           <button
             key={idx}
@@ -437,167 +541,84 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
               handleSendMessage(topic.prompt);
             }}
             className={cn(
-              'whitespace-nowrap px-3 py-1.5 rounded-full font-medium transition-all shadow-sm flex items-center gap-1.5',
+              'whitespace-nowrap px-3.5 py-1.5 rounded-full font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all border border-light-dim',
               selectedTopic === topic.label
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                : isDarkMode
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                ? 'bg-orange text-white'
+                : 'bg-white text-dark hover:bg-light'
             )}
           >
-            <Sparkles className="w-3 h-3 text-amber-400" />
+            <Sparkles className="w-3 h-3 text-orange" />
             {topic.label}
           </button>
         ))}
       </div>
 
-      {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn('flex flex-col space-y-1', msg.sender === 'user' ? 'items-end' : 'items-start')}
-          >
-            <div
-              className={cn(
-                'max-w-[88%] sm:max-w-[80%] rounded-2xl px-4 py-3 shadow-sm text-sm transition-all',
-                msg.sender === 'user'
-                  ? isDarkMode
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-blue-600 text-white rounded-br-none'
-                  : isDarkMode
-                  ? 'bg-gray-800 border border-gray-700 text-gray-100 rounded-bl-none'
-                  : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
-              )}
-            >
-              {/* Message Header */}
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[10px] font-semibold opacity-75">
-                  {msg.sender === 'user' ? '👤 Spoken by You' : '🤖 Maraki AI Teacher'}
-                </span>
-                <span className="text-[10px] opacity-60">{msg.timestamp}</span>
-              </div>
+      {/* Styled Bottom Input Panel */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-light-dim shrink-0 z-35 flex flex-col gap-2">
 
-              {/* Message Body */}
-              {msg.sender === 'user' ? (
-                <div>
-                  <div className="text-sm">{renderStrikethroughMessage(msg)}</div>
-
-                  {/* Grammar Correction Alert Card */}
-                  {msg.grammarMistake && (
-                    <div className="mt-3 pt-2.5 border-t border-blue-400/40 text-xs space-y-1.5">
-                      <div className="flex items-center justify-between text-amber-200 font-medium">
-                        <span className="flex items-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-amber-300" />
-                          {msg.grammarMistake.type}
-                        </span>
-                        <span className="bg-amber-400/20 text-amber-200 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold">
-                          Grammar Tip
-                        </span>
-                      </div>
-                      <p className="text-blue-100 opacity-90 leading-relaxed">{msg.grammarMistake.explanation}</p>
-                      <div className="bg-black/20 p-2 rounded text-emerald-200 font-mono text-[11px]">
-                        💬 Native: "{msg.grammarMistake.nativeAlternative}"
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="leading-relaxed">{msg.originalText}</p>
-
-                  <button
-                    onClick={() => speakText(msg.originalText)}
-                    className={cn(
-                      'mt-1 text-xs flex items-center gap-1.5 font-medium transition-colors px-2 py-1 rounded-md',
-                      isDarkMode
-                        ? 'text-blue-400 hover:bg-gray-700'
-                        : 'text-blue-600 hover:bg-blue-50'
-                    )}
-                  >
-                    <Play className="w-3 h-3 fill-current" /> Listen AI Voice
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {isProcessing && (
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 italic py-2">
-            <Sparkles className="w-4 h-4 animate-spin text-blue-500" />
-            Analyzing grammar & generating voice response...
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Live Voice Recording Controls & Input Bar */}
-      <div
-        className={cn(
-          'p-3 border-t shadow-lg flex flex-col gap-2',
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        )}
-      >
-        {/* Pulsing Mic Visualizer Bar when Recording */}
         {isRecording && (
-          <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-red-500/10 via-rose-500/20 to-red-500/10 border border-red-500/30 rounded-xl animate-pulse">
-            <div className="flex items-center gap-2 text-red-500 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-              Listening... Speak in English now
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between px-4 py-2 bg-rose-50 border border-rose-100 rounded-xl"
+          >
+            <div className="flex items-center gap-2 text-rose-600 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              Recording voice...
             </div>
-            <div className="flex gap-1 items-end h-4">
-              <span className="w-1 bg-red-500 h-2 animate-bounce" />
-              <span className="w-1 bg-red-500 h-4 animate-bounce delay-100" />
-              <span className="w-1 bg-red-500 h-3 animate-bounce delay-200" />
+            <div className="flex gap-0.5 items-end h-3">
+              <span className="w-0.5 bg-rose-500 h-2 animate-bounce" />
+              <span className="w-0.5 bg-rose-500 h-3 animate-bounce [animation-delay:0.1s]" />
+              <span className="w-0.5 bg-rose-500 h-1.5 animate-bounce [animation-delay:0.2s]" />
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <div className="flex items-center gap-2">
-          {/* Main Big Pulsing Mic Button */}
-          <button
-            onClick={toggleRecording}
-            className={cn(
-              'p-3.5 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center shrink-0',
-              isRecording
-                ? 'bg-red-500 text-white scale-110 ring-4 ring-red-300 dark:ring-red-900 animate-pulse'
-                : 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white hover:opacity-95'
-            )}
-          >
-            {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+        <div className="flex items-center gap-2.5">
+          {/* Circular Attachment Button */}
+          <button className="w-11 h-11 rounded-full flex items-center justify-center bg-dark text-white hover:bg-dark-muted active:scale-95 transition-all shrink-0">
+            <Paperclip className="w-5 h-5" />
           </button>
 
-          {/* Text Input Fallback */}
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder={isRecording ? 'Listening to your voice...' : 'Type or speak your sentence...'}
-            className={cn(
-              'flex-1 px-4 py-3 rounded-full text-sm outline-none border transition-all',
-              isDarkMode
-                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-                : 'bg-gray-100 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-            )}
-          />
+          {/* Main Rounded Input Box */}
+          <div className="flex-1 relative flex items-center">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder={isRecording ? 'Listening...' : 'Type your homework question...'}
+              className="w-full h-11 pl-4 pr-10 rounded-full border border-light-dim bg-light/50 text-dark placeholder:text-dark/45 text-sm focus:outline-none focus:border-orange focus:bg-white transition-all"
+            />
 
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim() || isProcessing}
-            className={cn(
-              'p-3 rounded-full transition-all shrink-0',
-              inputText.trim() && !isProcessing
-                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-            )}
-          >
-            <Send className="w-5 h-5" />
-          </button>
+            {/* Input Send / Mic toggle button inside input bar */}
+            <div className="absolute right-1">
+              {inputText.trim() ? (
+                <button
+                  onClick={() => handleSendMessage()}
+                  className="w-9 h-9 rounded-full bg-orange text-white flex items-center justify-center hover:bg-orange-soft active:scale-95 transition-all"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={toggleRecording}
+                  className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                    isRecording
+                      ? "bg-rose-500 text-white animate-pulse"
+                      : "text-dark/60 hover:text-dark hover:bg-light-dim"
+                  )}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+
       </div>
+
     </div>
   );
 }

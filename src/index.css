@@ -1,1 +1,175 @@
+/* ── Google Fonts ───────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&display=swap');
+
 @import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   MARAKI DESIGN SYSTEM — Global Color & Token Definitions
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Brand Palette ─────────────────────────────────────────── */
+  --color-lime:       #C5F400;   /* Neon lime  — highlights, badges, accents  */
+  --color-orange:     #FC4A01;   /* Vermillion — primary CTA, headings, bubbles */
+  --color-dark:       #101309;   /* Near-black — dark bg, body text on light   */
+  --color-light:      #E7E8E9;   /* Light gray — surfaces, cards, input fields */
+
+  /* ── Derived / Tinted Variants ─────────────────────────────── */
+  --color-lime-soft:  #d8ff33;   /* Lighter lime for hover states              */
+  --color-lime-dim:   #a8d400;   /* Darker lime for pressed / active           */
+  --color-orange-soft:#ff6a28;   /* Lighter orange for hover                   */
+  --color-orange-dim: #d93d00;   /* Darker orange for pressed / active         */
+  --color-dark-muted: #1e2318;   /* Slightly lighter dark for panels           */
+  --color-light-dim:  #d0d1d2;   /* Slightly darker light for borders          */
+
+  /* ── Semantic Aliases ──────────────────────────────────────── */
+  --color-bg:         var(--color-light);       /* Default page background      */
+  --color-bg-card:    #ffffff;                  /* Card / surface background    */
+  --color-bg-dark:    var(--color-dark);        /* Dark mode background         */
+  --color-primary:    var(--color-orange);      /* Primary action color         */
+  --color-primary-fg: #ffffff;                  /* Text on primary bg           */
+  --color-accent:     var(--color-lime);        /* Accent / highlight color     */
+  --color-accent-fg:  var(--color-dark);        /* Text on accent bg            */
+  --color-text:       var(--color-dark);        /* Default body text            */
+  --color-text-muted: #6b7066;                  /* Muted / secondary text       */
+  --color-border:     var(--color-light-dim);   /* Default border               */
+
+  /* ── Typography ──────────────────────────────────────────────
+     Anton     → Bold condensed display (WELCOME BACK!, dates, headings)
+     DM Sans   → Clean body, UI text, chat bubbles, inputs
+  ─────────────────────────────────────────────────────────────── */
+  --font-display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+  --font-sans:    'DM Sans', 'Inter', system-ui, sans-serif;
+
+  /* ── Spacing & Radius ──────────────────────────────────────── */
+  --radius-sm:        8px;
+  --radius-md:        14px;
+  --radius-lg:        22px;
+  --radius-full:      9999px;
+
+  /* ── Shadows ───────────────────────────────────────────────── */
+  --shadow-sm:        0 1px 4px rgba(16, 19, 9, 0.08);
+  --shadow-md:        0 4px 16px rgba(16, 19, 9, 0.12);
+  --shadow-lg:        0 8px 32px rgba(16, 19, 9, 0.18);
+  --shadow-orange:    0 4px 20px rgba(252, 74, 1, 0.35);
+  --shadow-lime:      0 4px 20px rgba(197, 244, 0, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE RESETS
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display headings always use Anton */
+h1, h2, .display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAILWIND v4 THEME REGISTRATION
+   Lets you use bg-orange, text-lime, etc. in JSX
+   ═══════════════════════════════════════════════════════════════ */
+@theme {
+  --color-lime:        #C5F400;
+  --color-lime-soft:   #d8ff33;
+  --color-lime-dim:    #a8d400;
+  --color-orange:      #FC4A01;
+  --color-orange-soft: #ff6a28;
+  --color-orange-dim:  #d93d00;
+  --color-dark:        #101309;
+  --color-dark-muted:  #1e2318;
+  --color-light:       #E7E8E9;
+  --color-light-dim:   #d0d1d2;
+
+  --font-display:      'Anton', Impact, 'Arial Narrow', sans-serif;
+  --font-sans:         'DM Sans', 'Inter', system-ui, sans-serif;
+
+  --radius-sm:         8px;
+  --radius-md:         14px;
+  --radius-lg:         22px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-orange);
+  color: var(--color-primary-fg);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover  { background-color: var(--color-orange-soft); box-shadow: var(--shadow-orange); }
+.btn-primary:active { background-color: var(--color-orange-dim);  transform: scale(0.97); }
+
+.btn-accent {
+  background-color: var(--color-lime);
+  color: var(--color-accent-fg);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+}
+.btn-accent:hover  { background-color: var(--color-lime-soft); box-shadow: var(--shadow-lime); }
+.btn-accent:active { background-color: var(--color-lime-dim);  transform: scale(0.97); }
+
+/* Cards */
+.card {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+}
+
+/* Chat bubbles */
+.bubble-user {
+  background-color: var(--color-orange);
+  color: #ffffff;
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  padding: 0.75rem 1rem;
+}
+.bubble-ai {
+  background-color: var(--color-light);
+  color: var(--color-dark);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+  padding: 0.75rem 1rem;
+}
+
+/* Accent badge (like the lime date sticker in the screenshot) */
+.badge-accent {
+  background-color: var(--color-lime);
+  color: var(--color-dark);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  display: inline-block;
+}
