@@ -185,160 +185,42 @@ export default function VoiceChatPage() {
   // Cache for AI generated audio to save tokens and prevent back-and-forth
   const audioCache = useRef<Map<string, string>>(new Map());
 
-  const speakText = async (text: string, messageId?: string) => {
+  const speakText = (text: string, messageId?: string) => {
     // If user clicks the currently playing message, stop it completely
     if (messageId && playingMessageId === messageId) {
       if (currentAudio.current) {
         currentAudio.current.pause();
         currentAudio.current = null;
       }
-      window.speechSynthesis.cancel();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setPlayingMessageId(null);
       setIsSpeaking(false);
       return;
     }
 
-    // Stop any previously playing audio before starting a new one
     if (currentAudio.current) {
       currentAudio.current.pause();
       currentAudio.current = null;
     }
+
+    if (!('speechSynthesis' in window)) {
+      alert('Text to speech is not supported in this browser.');
+      return;
+    }
+
     window.speechSynthesis.cancel();
     if (messageId) setPlayingMessageId(messageId);
 
-    // 1. Immediately unlock SpeechSynthesis on user click to prevent browsers (Chrome/Safari)
-    // from silently blocking audio playback after the async API fetch.
-    if ('speechSynthesis' in window) {
-      const unlock = new SpeechSynthesisUtterance('');
-      unlock.volume = 0;
-      window.speechSynthesis.speak(unlock);
-    }
-    
-    setIsSpeaking(true);
-
-      if (audioCache.current.has(text)) {
-      const audioData = audioCache.current.get(text)!;
-      const audio = new Audio(audioData);
-      currentAudio.current = audio;
-      
-      audio.onended = () => {
-        setIsSpeaking(false);
-        setPlayingMessageId(null);
-      };
-      audio.onerror = () => fallbackToBrowserTTS(text, messageId);
-      audio.play().catch(() => fallbackToBrowserTTS(text, messageId));
-      return;
-    }
-
-    // Try Gemini TTS first with the cheapest modern models
-    try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-      if (apiKey) {
-        const modelsToTry = [
-          'gemini-3.5-flash-lite',
-          'gemini-3.1-flash',
-          'gemini-3.5-flash',
-          'gemini-2.0-flash'
-        ];
-
-        for (const modelName of modelsToTry) {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey,
-            },
-            body: JSON.stringify({
-              contents: [{
-                role: 'user',
-                parts: [{ text: 'Please read the following text exactly as written, without adding any commentary or extra words:\n\n' + text }]
-              }],
-              generationConfig: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                  voiceConfig: {
-                    prebuiltVoiceConfig: {
-                      voiceName: 'Aoede'
-                    }
-                  }
-                }
-              }
-            })
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const audioPart = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.mimeType?.startsWith('audio/'));
-            
-            if (audioPart && audioPart.inlineData?.data) {
-              const audioData = 'data:' + audioPart.inlineData.mimeType + ';base64,' + audioPart.inlineData.data;
-              
-              audioCache.current.set(text, audioData);
-              const audio = new Audio(audioData);
-              currentAudio.current = audio;
-
-              audio.onended = () => {
-                setIsSpeaking(false);
-                setPlayingMessageId(null);
-              };
-              audio.onerror = () => fallbackToBrowserTTS(text, messageId);
-              audio.play().catch(() => fallbackToBrowserTTS(text, messageId));
-              return; // Success! We found a working model
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Gemini TTS request failed:', err);
-    }
-
-    // Ultimate fallback: Google Cloud Translate TTS (Zero cost, no API keys)
-    try {
-      const safeText = text.slice(0, 200);
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(safeText)}`;
-      
-      const audio = new Audio(url);
-      currentAudio.current = audio;
-      
-      audio.onended = () => {
-        setIsSpeaking(false);
-        setPlayingMessageId(null);
-      };
-      audio.onerror = () => {
-        console.error('Cloud TTS failed, using offline fallback');
-        fallbackToBrowserTTS(text, messageId);
-      };
-      
-      audio.play().then(() => {
-        // Cache the URL if it successfully played
-        audioCache.current.set(text, url);
-      }).catch((e) => {
-        console.error('Cloud TTS play failed:', e);
-        fallbackToBrowserTTS(text, messageId);
-      });
-      
-    } catch (err) {
-      console.error('TTS request failed:', err);
-      fallbackToBrowserTTS(text, messageId);
-    }
-  };
-
-  const fallbackToBrowserTTS = (text: string, messageId?: string) => {
-    if (!('speechSynthesis' in window)) {
-      setIsSpeaking(false);
-      if (messageId) setPlayingMessageId(null);
-      return;
-    }
-    
-    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.95;
-    utterance.pitch = 1.05;
+    utterance.pitch = 1.0;
 
     const avail = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
     if (avail.length > 0) {
-      const naturalVoice = avail.find(
+      const bestVoice = avail.find(
         (v) =>
           v.lang.startsWith('en') &&
           (v.name.includes('Google') ||
@@ -348,8 +230,8 @@ export default function VoiceChatPage() {
             v.name.includes('Jenny'))
       ) || avail.find((v) => v.lang.startsWith('en'));
 
-      if (naturalVoice) {
-        utterance.voice = naturalVoice;
+      if (bestVoice) {
+        utterance.voice = bestVoice;
       }
     }
 
@@ -358,7 +240,8 @@ export default function VoiceChatPage() {
       setIsSpeaking(false);
       if (messageId) setPlayingMessageId(null);
     };
-    utterance.onerror = () => {
+    utterance.onerror = (e) => {
+      console.error('Speech Synthesis Error:', e);
       setIsSpeaking(false);
       if (messageId) setPlayingMessageId(null);
     };
@@ -783,8 +666,8 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
           )}
         </div>
 
-        {/* Practice Quests / Suggested Cards */}
-        <div className="px-4 py-2.5 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 bg-card border-t border-border">
+        {/* Practice Quests / Suggested Cards - Display Title and Type (Category) only */}
+        <div className="px-4 py-2.5 flex gap-2 overflow-x-auto no-scrollbar shrink-0 bg-card border-t border-border">
           {TOPICS.map((topic, idx) => (
             <button
               key={idx}
@@ -793,20 +676,19 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
                 handleSendMessage(topic.prompt);
               }}
               className={cn(
-                'whitespace-nowrap px-3.5 py-2 rounded-2xl font-semibold text-xs shadow-sm flex flex-col gap-0.5 transition-all border shrink-0 text-left',
+                'whitespace-nowrap px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-sm',
                 selectedTopic === topic.label
                   ? 'bg-primary border-primary text-primary-foreground shadow-md'
                   : 'bg-muted/40 border-border text-foreground hover:border-primary/40'
               )}
             >
-              <div className="flex items-center gap-1.5 font-bold">
-                <span>{topic.label}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] opacity-70">
-                <span>{topic.category}</span>
-                <span>•</span>
-                <span className="text-primary font-bold">{topic.level}</span>
-              </div>
+              <span>{topic.label}</span>
+              <span className={cn(
+                "text-[10px] font-semibold px-2 py-0.5 rounded-md",
+                selectedTopic === topic.label ? "bg-white/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>
+                {topic.category}
+              </span>
             </button>
           ))}
         </div>
@@ -816,6 +698,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
           <div className="max-w-3xl mx-auto flex gap-3 items-center">
             <VoiceButton
               onTranscript={(text) => setInputText(text)}
+              onListeningChange={(listening) => setIsRecording(listening)}
               disabled={isProcessing}
             />
             
