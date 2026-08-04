@@ -60,7 +60,7 @@ export default function App() {
                   transition={{ delay: 0.4, duration: 0.5 }}
                   className="text-xs font-medium text-light/60 uppercase tracking-widest"
                 >
-                  Your Voice & Grammar Tutor
+                  Your English Fluency Tutor
                 </motion.p>
               </div>
 
