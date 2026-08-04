@@ -240,7 +240,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
     let lastError = '';
     for (const modelName of modelsToTry) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -475,7 +475,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
     let lastError = '';
     for (const modelName of modelsToTry) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
