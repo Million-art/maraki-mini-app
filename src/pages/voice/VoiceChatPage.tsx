@@ -716,41 +716,65 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
       {/* Main App Container */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-background text-foreground relative z-10">
         
-        <Header />
+        <Header onOpenSidebar={() => setIsSidebarOpen(true)} streak={streak} xp={xp} />
 
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Live Speech Waveform / Audio State Bar */}
+        {(isRecording || isSpeaking || isProcessing) && (
+          <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center justify-between text-xs font-semibold text-muted-foreground shrink-0">
+            <div className="flex items-center gap-2">
+              <Volume2 className={cn("w-4 h-4 text-primary", isSpeaking && "animate-pulse")} />
+              <span>
+                {isRecording ? "Listening to your voice..." : isSpeaking ? "Maraki AI is speaking..." : "Analyzing response..."}
+              </span>
+            </div>
+            {/* Animated Equalizer Sound Bars */}
+            <div className="flex items-end gap-1 h-3.5">
+              <span className="w-1 bg-primary rounded-full h-3 animate-bounce" />
+              <span className="w-1 bg-accent rounded-full h-4 animate-bounce [animation-delay:0.15s]" />
+              <span className="w-1 bg-primary rounded-full h-2 animate-bounce [animation-delay:0.3s]" />
+              <span className="w-1 bg-accent rounded-full h-3.5 animate-bounce [animation-delay:0.45s]" />
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto flex flex-col no-scrollbar">
           {messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center px-4 py-8">
               <div className="w-full max-w-md space-y-8">
                 <div className="text-center space-y-6">
-                  <h1 className="text-6xl md:text-7xl font-black text-primary leading-tight uppercase">
+                  <h1 className="text-5xl md:text-6xl font-black text-primary leading-tight uppercase tracking-tight">
                     WELCOME
                     <br />
                     BACK!
                   </h1>
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground font-semibold">Ready to chat?</p>
+                    <p className="text-sm text-muted-foreground font-semibold">Ready to practice?</p>
                     <p className="text-base text-foreground leading-relaxed">
-                      Start a conversation with Maraki and practice your English speaking and writing skills.
+                      Start a conversation with Maraki AI and practice your English speaking and writing skills.
                     </p>
                   </div>
                 </div>
-                <div className="bg-primary text-primary-foreground rounded-3xl p-6 space-y-3 shadow-lg">
-                  <p className="text-sm font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Tip</p>
-                  <p className="text-sm leading-relaxed">
-                    Use the microphone button to practice speaking, or type your messages to get real-time feedback.
+                <div className="bg-primary text-primary-foreground rounded-3xl p-5 space-y-2.5 shadow-lg">
+                  <p className="text-sm font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Speaking Tip</p>
+                  <p className="text-xs leading-relaxed opacity-95">
+                    Tap the mic button to speak naturally, or pick a practice topic below to begin your session.
                   </p>
                 </div>
               </div>
             </div>
           ) : (
             <>
-              <ChatMessages messages={messages} onSpeak={speakText} playingMessageId={playingMessageId} onExplain={(msg) => handleSendMessage(msg)} />
+              <ChatMessages 
+                messages={messages} 
+                onSpeak={speakText} 
+                playingMessageId={playingMessageId} 
+                onExplain={(msg) => handleSendMessage(msg)} 
+              />
               {isProcessing && (
                 <div className="flex items-center justify-center py-4">
                   <div className="flex items-center gap-2 text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-full animate-pulse">
                     <Sparkles className="w-4 h-4" />
-                    Maraki AI is typing...
+                    Maraki AI is generating response...
                   </div>
                 </div>
               )}
@@ -759,8 +783,37 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
           )}
         </div>
 
-        <div className="border-t border-border bg-card px-4 md:px-6 py-4 md:py-6 shrink-0 z-20">
-          <div className="max-w-3xl mx-auto flex gap-3 items-end">
+        {/* Practice Quests / Suggested Cards */}
+        <div className="px-4 py-2.5 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 bg-card border-t border-border">
+          {TOPICS.map((topic, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setSelectedTopic(topic.label);
+                handleSendMessage(topic.prompt);
+              }}
+              className={cn(
+                'whitespace-nowrap px-3.5 py-2 rounded-2xl font-semibold text-xs shadow-sm flex flex-col gap-0.5 transition-all border shrink-0 text-left',
+                selectedTopic === topic.label
+                  ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                  : 'bg-muted/40 border-border text-foreground hover:border-primary/40'
+              )}
+            >
+              <div className="flex items-center gap-1.5 font-bold">
+                <span>{topic.label}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] opacity-70">
+                <span>{topic.category}</span>
+                <span>•</span>
+                <span className="text-primary font-bold">{topic.level}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Bottom Bar Controls */}
+        <div className="border-t border-border bg-card px-4 md:px-6 py-3.5 shrink-0 z-20">
+          <div className="max-w-3xl mx-auto flex gap-3 items-center">
             <VoiceButton
               onTranscript={(text) => setInputText(text)}
               disabled={isProcessing}
@@ -778,7 +831,8 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             <button
               onClick={() => handleSendMessage()}
               disabled={isProcessing || !inputText || !inputText.trim()}
-              className="p-4 h-[58px] w-[58px] bg-primary text-primary-foreground rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center flex-shrink-0 shadow-md"
+              className="p-3.5 h-[48px] w-[48px] bg-primary text-primary-foreground rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center flex-shrink-0 shadow-md active:scale-95"
+              aria-label="Send message"
             >
               <Send className="w-5 h-5 ml-0.5" />
             </button>
