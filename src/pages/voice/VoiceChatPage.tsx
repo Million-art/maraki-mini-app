@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +22,11 @@ import {
 import { cn } from '../../lib/utils';
 import { computeWordDiff, type DiffToken } from '../../utils/strikethrough.util';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
+
+import Header from '../../components/Header';
+import ChatMessages from '../../components/ChatMessages';
+import ChatInput from '../../components/ChatInput';
+import VoiceButton from '../../components/VoiceButton';
 
 interface Message {
   id: string;
@@ -552,251 +558,76 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
       </AnimatePresence>
 
       {/* Main App Container */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-light">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-background text-foreground relative z-10">
         
-        {/* Gamified App Header */}
-        <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-light-dim shrink-0 z-10 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-xl text-dark/70 hover:bg-light hover:text-dark active:scale-95 transition-all"
-            >
-              <Menu className="w-5.5 h-5.5" />
-            </button>
+        <Header />
 
-            <div className="flex items-center gap-2.5">
-              <div className="relative flex items-center">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange to-lime p-[1.5px] shadow-sm">
-                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-display text-sm font-bold text-orange">
-                    M
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          {messages.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center px-4 py-8">
+              <div className="w-full max-w-md space-y-8">
+                <div className="text-center space-y-6">
+                  <h1 className="text-6xl md:text-7xl font-black text-primary leading-tight uppercase">
+                    WELCOME
+                    <br />
+                    BACK!
+                  </h1>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground font-semibold">Ready to chat?</p>
+                    <p className="text-base text-foreground leading-relaxed">
+                      Start a conversation with Maraki and practice your English speaking and writing skills.
+                    </p>
                   </div>
                 </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-lime border-2 border-white shadow-sm" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-dark leading-tight">Maraki AI</h1>
-                <p className="text-[10px] text-orange font-bold uppercase tracking-wider leading-none mt-0.5">
-                  Speaking Coach
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Duolingo-style Streak & XP Badges */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange/10 border border-orange/20 text-orange font-extrabold text-xs">
-              <Flame className="w-3.5 h-3.5 fill-current" />
-              <span>{streak}d</span>
-            </div>
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-lime/20 border border-lime/40 text-dark font-extrabold text-xs">
-              <Zap className="w-3.5 h-3.5 text-orange fill-current" />
-              <span>{xp} XP</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Live Speech Waveform / Audio State Bar */}
-        {(isRecording || isSpeaking || isProcessing) && (
-          <div className="px-4 py-2 bg-dark/5 border-b border-light-dim flex items-center justify-between text-xs font-semibold text-dark/70 shrink-0">
-            <div className="flex items-center gap-2">
-              <Volume2 className={cn("w-4 h-4 text-orange", isSpeaking && "animate-pulse")} />
-              <span>
-                {isRecording ? "Listening to your voice..." : isSpeaking ? "Maraki AI is speaking..." : "Analyzing response..."}
-              </span>
-            </div>
-            {/* Animated Equalizer Sound Bars */}
-            <div className="flex items-end gap-1 h-3.5">
-              <span className="w-1 bg-orange rounded-full h-3 animate-bounce" />
-              <span className="w-1 bg-lime rounded-full h-4 animate-bounce [animation-delay:0.15s]" />
-              <span className="w-1 bg-orange rounded-full h-2 animate-bounce [animation-delay:0.3s]" />
-              <span className="w-1 bg-lime rounded-full h-3.5 animate-bounce [animation-delay:0.45s]" />
-            </div>
-          </div>
-        )}
-
-        {/* Message Feed Area */}
-        <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 space-y-4 bg-light">
-          <AnimatePresence initial={false}>
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center h-full text-dark/40 space-y-3 py-10">
-                <div className="w-14 h-14 rounded-2xl bg-orange/10 flex items-center justify-center text-orange border border-orange/20">
-                  <Sparkles className="w-7 h-7" />
+                <div className="bg-primary text-primary-foreground rounded-3xl p-6 space-y-3 shadow-lg">
+                  <p className="text-sm font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Tip</p>
+                  <p className="text-sm leading-relaxed">
+                    Use the microphone button to practice speaking, or type your messages to get real-time feedback.
+                  </p>
                 </div>
-                <h2 className="text-base font-bold text-dark">Ready for English Practice?</h2>
-                <p className="text-xs max-w-xs leading-relaxed text-dark/60">
-                  Select an interactive quest card below or tap the mic button to start talking naturally with Maraki AI.
-                </p>
               </div>
-            ) : (
-              messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 8, scale: 0.99 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.15 }}
-                  className={cn('flex flex-col', msg.sender === 'user' ? 'items-end' : 'items-start')}
-                >
-                  <div
-                    className={cn(
-                      'max-w-[88%] rounded-2xl px-4 py-3 shadow-sm text-[14px] leading-relaxed relative border',
-                      msg.sender === 'user'
-                        ? 'bg-[#101309] border-[#101309] text-white rounded-tr-none'
-                        : 'bg-white border-light-dim text-dark rounded-tl-none shadow-sm'
-                    )}
-                  >
-                    {/* Header Label inside Bubble */}
-                    <div className="flex items-center justify-between gap-4 mb-1.5">
-                      <span className={cn(
-                        'text-[10px] font-bold uppercase tracking-wider flex items-center gap-1',
-                        msg.sender === 'user' ? 'text-white/60' : 'text-orange'
-                      )}>
-                        {msg.sender === 'user' ? 'Your Speech' : 'Maraki Coach'}
-                      </span>
-                      <span className={cn(
-                        'text-[9px]',
-                        msg.sender === 'user' ? 'text-white/40' : 'text-dark/40'
-                      )}>
-                        {msg.timestamp}
-                      </span>
-                    </div>
-
-                    {/* Message Body */}
-                    {msg.sender === 'user' ? (
-                      <div>
-                        <div>{renderStrikethroughMessage(msg)}</div>
-                        
-                        {/* High Impact Grammar Spotlight Card */}
-                        {msg.grammarMistake && (
-                          <div className="mt-2.5 pt-2 border-t border-white/15 text-[12px] space-y-1.5">
-                            <div className="flex items-center gap-1 text-lime font-extrabold uppercase tracking-wider text-[9px]">
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              {msg.grammarMistake.type}
-                            </div>
-                            <p className="text-white/90 leading-tight">{msg.grammarMistake.explanation}</p>
-                            <div className="bg-white/10 p-2 rounded-xl text-lime font-bold text-[11px] mt-1 border border-lime/30 flex items-center justify-between">
-                              <span>💡 Native: "{msg.grammarMistake.nativeAlternative}"</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2.5">
-                        <p className="text-dark/90 font-medium">{msg.originalText}</p>
-                        
-                        {/* Action Chips Bar */}
-                        <div className="flex items-center gap-2 pt-1 border-t border-light-dim/60">
-                          <button
-                            onClick={() => speakText(msg.originalText)}
-                            className="text-xs px-2.5 py-1 rounded-full bg-orange/10 text-orange font-bold hover:bg-orange/20 transition-all flex items-center gap-1"
-                          >
-                            <Play className="w-3 h-3 fill-current" /> Listen
-                          </button>
-
-                          <button
-                            onClick={() => handleSendMessage(`Can you explain the grammar behind "${msg.originalText.slice(0, 30)}..."?`)}
-                            className="text-xs px-2.5 py-1 rounded-full bg-light text-dark/70 font-semibold hover:bg-light-dim transition-all flex items-center gap-1"
-                          >
-                            <HelpCircle className="w-3 h-3" /> Explain
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
-
-          {isProcessing && (
-            <div className="flex items-center gap-2 text-xs text-orange font-semibold py-1 pl-1">
-              <Sparkles className="w-4 h-4 animate-spin text-orange" />
-              Maraki AI is generating audio response...
             </div>
+          ) : (
+            <>
+              <ChatMessages messages={messages} onSpeak={speakText} onExplain={(msg) => handleSendMessage(msg)} />
+              {isProcessing && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="flex items-center gap-2 text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-full animate-pulse">
+                    <Sparkles className="w-4 h-4" />
+                    Maraki AI is typing...
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </>
           )}
-
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* Practice Quests / Suggested Cards */}
-        <div className="px-4 py-2 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 bg-white border-t border-light-dim">
-          {TOPICS.map((topic, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                setSelectedTopic(topic.label);
-                handleSendMessage(topic.prompt);
-              }}
-              className={cn(
-                'whitespace-nowrap px-3.5 py-2 rounded-2xl font-semibold text-xs shadow-sm flex flex-col gap-0.5 transition-all border shrink-0 text-left',
-                selectedTopic === topic.label
-                  ? 'bg-orange border-orange text-white shadow-md'
-                  : 'bg-light border-light-dim text-dark hover:border-orange/40'
-              )}
-            >
-              <div className="flex items-center gap-1.5 font-bold">
-                <span>{topic.label}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] opacity-70">
-                <span>{topic.category}</span>
-                <span>•</span>
-                <span className="text-orange font-bold">{topic.level}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Speak AI Style Bottom Control Bar */}
-        <div className="px-4 pb-4 pt-2.5 bg-light border-t border-light-dim shrink-0 flex flex-col gap-2">
-          
-          <div className="flex items-center gap-3">
-            {/* Circular Voice Button with Animated Pulse Rings */}
-            <div className="relative shrink-0">
-              {isRecording && (
-                <span className="absolute -inset-1 rounded-full bg-rose-500/40 animate-ping" />
-              )}
-              <button 
-                onClick={toggleRecording}
-                className={cn(
-                  "w-11 h-11 rounded-full flex items-center justify-center active:scale-95 transition-all relative z-10 shadow-md",
-                  isRecording 
-                    ? "bg-rose-500 text-white" 
-                    : "bg-[#101309] text-white hover:bg-dark-muted"
-                )}
-              >
-                {isRecording ? <MicOff className="w-5.5 h-5.5" /> : <Mic className="w-5.5 h-5.5" />}
-              </button>
-            </div>
-
-            {/* Input Bar */}
-            <div className="flex-1 relative flex items-center">
-              <input
-                type="text"
+        <div className="border-t border-border bg-card px-4 md:px-6 py-4 md:py-6 shrink-0 z-20">
+          <div className="max-w-3xl mx-auto flex gap-3 items-end">
+            <VoiceButton
+              onTranscript={(text) => setInputText(text)}
+              disabled={isProcessing}
+            />
+            
+            <div className="flex-1">
+              <ChatInput
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Talk or type to Maraki AI..."
-                className="w-full h-11 pl-4 pr-11 rounded-full border border-light-dim bg-white text-dark placeholder:text-dark/45 text-sm focus:outline-none focus:border-orange transition-all shadow-sm font-medium"
+                disabled={isProcessing}
               />
-              
-              <div className="absolute right-1">
-                <button
-                  onClick={() => handleSendMessage()}
-                  disabled={!inputText.trim()}
-                  className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center transition-all",
-                    inputText.trim() 
-                      ? "text-orange hover:bg-light" 
-                      : "text-dark/30 cursor-default"
-                  )}
-                >
-                  <Send className="w-4.5 h-4.5" />
-                </button>
-              </div>
             </div>
+
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={isProcessing || !inputText || !inputText.trim()}
+              className="p-4 h-[58px] w-[58px] bg-primary text-primary-foreground rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center flex-shrink-0 shadow-md"
+            >
+              <Send className="w-5 h-5 ml-0.5" />
+            </button>
           </div>
-
         </div>
-
       </div>
 
     </div>

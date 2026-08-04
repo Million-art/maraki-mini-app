@@ -27,7 +27,7 @@ export default function App() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-dark text-white font-sans"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black text-white font-sans"
           >
             <div className="flex flex-col items-center max-w-sm px-6 text-center space-y-6">
               {/* Mascot GIF Container */}
