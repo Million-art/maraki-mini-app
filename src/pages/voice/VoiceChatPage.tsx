@@ -198,8 +198,8 @@ export default function VoiceChatPage() {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
-        // We must use v1alpha and gemini-2.0-flash-exp for audio modality support.
-        const res = await fetch('https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-exp:generateContent', {
+        // Using v1alpha with gemini-2.0-flash for audio modality support.
+        const res = await fetch('https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash:generateContent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
