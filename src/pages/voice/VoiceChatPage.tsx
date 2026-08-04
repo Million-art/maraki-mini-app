@@ -198,8 +198,8 @@ export default function VoiceChatPage() {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
-        // Using the cheapest flash-lite model to save tokens
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent', {
+        // We must use gemini-2.0-flash for audio modality, lite may not support it yet.
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -245,10 +245,16 @@ export default function VoiceChatPage() {
             });
             return;
           }
+        } else {
+          const errData = await res.json().catch(() => null);
+          const errMsg = errData?.error?.message || 'Unknown error';
+          console.error('Gemini TTS failed with status:', res.status, errData);
+          alert(`Gemini Audio API Error (${res.status}): ${errMsg}\n\nFalling back to browser TTS.`);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Gemini TTS request failed:', err);
+      alert(`Network error during Gemini Audio API request: ${err.message}\n\nFalling back to browser TTS.`);
     }
 
     fallbackToBrowserTTS(text);
