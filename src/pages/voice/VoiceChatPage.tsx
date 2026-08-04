@@ -183,6 +183,14 @@ export default function VoiceChatPage() {
   const audioCache = useRef<Map<string, string>>(new Map());
 
   const speakText = async (text: string) => {
+    // 1. Immediately unlock SpeechSynthesis on user click to prevent browsers (Chrome/Safari)
+    // from silently blocking audio playback after the async API fetch.
+    if ('speechSynthesis' in window) {
+      const unlock = new SpeechSynthesisUtterance('');
+      unlock.volume = 0;
+      window.speechSynthesis.speak(unlock);
+    }
+    
     setIsSpeaking(true);
 
     if (audioCache.current.has(text)) {
