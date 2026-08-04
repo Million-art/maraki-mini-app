@@ -179,13 +179,27 @@ export default function VoiceChatPage() {
     }
   }, []);
 
+  // Cache for AI generated audio to save tokens and prevent back-and-forth
+  const audioCache = useRef<Map<string, string>>(new Map());
+
   const speakText = async (text: string) => {
     setIsSpeaking(true);
+
+    // If we already generated audio for this text, use it instantly!
+    if (audioCache.current.has(text)) {
+      const audioData = audioCache.current.get(text)!;
+      const audio = new Audio(audioData);
+      audio.onended = () => setIsSpeaking(false);
+      audio.onerror = () => fallbackToBrowserTTS(text);
+      audio.play().catch(() => fallbackToBrowserTTS(text));
+      return;
+    }
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+        // Using the cheapest flash-lite model to save tokens
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -215,6 +229,10 @@ export default function VoiceChatPage() {
           
           if (audioPart && audioPart.inlineData?.data) {
             const audioData = 'data:' + audioPart.inlineData.mimeType + ';base64,' + audioPart.inlineData.data;
+            
+            // Save to cache so we never have to fetch it again
+            audioCache.current.set(text, audioData);
+
             const audio = new Audio(audioData);
             audio.onended = () => setIsSpeaking(false);
             audio.onerror = () => {
