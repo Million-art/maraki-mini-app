@@ -29,21 +29,21 @@ export default function App() {
             transition={{ duration: 0.5, ease: "easeInOut" }}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black text-white font-sans"
           >
-            <div className="flex flex-col items-center max-w-sm px-6 text-center space-y-6">
-              {/* Mascot GIF Container */}
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-                className="w-36 h-36 rounded-full border-4 border-lime/30 bg-white/5 overflow-hidden flex items-center justify-center shadow-[0_10px_30px_rgba(197,244,0,0.15)]"
-              >
-                <img
-                  src={mascotGif}
-                  alt="Maraki Mascot"
-                  className="w-32 h-32 object-contain"
-                />
-              </motion.div>
+            {/* Mascot Fullscreen Background */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+              className="absolute inset-0 w-full h-full flex items-center justify-center -z-10 overflow-hidden"
+            >
+              <img
+                src={mascotGif}
+                alt="Maraki Mascot"
+                className="w-full h-full object-contain"
+              />
+            </motion.div>
 
+            <div className="flex flex-col items-center w-full px-6 text-center space-y-6 mt-auto mb-16 z-10 bg-gradient-to-t from-black via-black/80 to-transparent pt-20 pb-10">
               {/* Title */}
               <div className="space-y-2">
                 <motion.h1

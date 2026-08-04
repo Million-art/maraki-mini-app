@@ -104,12 +104,14 @@ export default function ChatMessages({ messages, onSpeak, onExplain }: ChatMessa
                     <Play className="w-3 h-3 fill-current" /> Listen
                   </button>
 
-                  <button
-                    onClick={() => onExplain?.(`Can you explain the grammar behind "${message.originalText.slice(0, 30)}..."?`)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-all flex items-center gap-1"
-                  >
-                    <HelpCircle className="w-3 h-3" /> Explain
-                  </button>
+                  {message.id !== '1' && (
+                    <button
+                      onClick={() => onExplain?.(`Can you explain the grammar behind "${message.originalText.slice(0, 30)}..."?`)}
+                      className="text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-all flex items-center gap-1"
+                    >
+                      <HelpCircle className="w-3 h-3" /> Explain
+                    </button>
+                  )}
                 </div>
               </div>
             )}
