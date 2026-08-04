@@ -179,10 +179,33 @@ export default function VoiceChatPage() {
     }
   }, []);
 
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const currentAudio = useRef<HTMLAudioElement | null>(null);
+  
   // Cache for AI generated audio to save tokens and prevent back-and-forth
   const audioCache = useRef<Map<string, string>>(new Map());
 
-  const speakText = async (text: string) => {
+  const speakText = async (text: string, messageId?: string) => {
+    // If user clicks the currently playing message, stop it completely
+    if (messageId && playingMessageId === messageId) {
+      if (currentAudio.current) {
+        currentAudio.current.pause();
+        currentAudio.current = null;
+      }
+      window.speechSynthesis.cancel();
+      setPlayingMessageId(null);
+      setIsSpeaking(false);
+      return;
+    }
+
+    // Stop any previously playing audio before starting a new one
+    if (currentAudio.current) {
+      currentAudio.current.pause();
+      currentAudio.current = null;
+    }
+    window.speechSynthesis.cancel();
+    if (messageId) setPlayingMessageId(messageId);
+
     // 1. Immediately unlock SpeechSynthesis on user click to prevent browsers (Chrome/Safari)
     // from silently blocking audio playback after the async API fetch.
     if ('speechSynthesis' in window) {
@@ -193,12 +216,17 @@ export default function VoiceChatPage() {
     
     setIsSpeaking(true);
 
-    if (audioCache.current.has(text)) {
+      if (audioCache.current.has(text)) {
       const audioData = audioCache.current.get(text)!;
       const audio = new Audio(audioData);
-      audio.onended = () => setIsSpeaking(false);
-      audio.onerror = () => fallbackToBrowserTTS(text);
-      audio.play().catch(() => fallbackToBrowserTTS(text));
+      currentAudio.current = audio;
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setPlayingMessageId(null);
+      };
+      audio.onerror = () => fallbackToBrowserTTS(text, messageId);
+      audio.play().catch(() => fallbackToBrowserTTS(text, messageId));
       return;
     }
 
@@ -247,9 +275,14 @@ export default function VoiceChatPage() {
               
               audioCache.current.set(text, audioData);
               const audio = new Audio(audioData);
-              audio.onended = () => setIsSpeaking(false);
-              audio.onerror = () => fallbackToBrowserTTS(text);
-              audio.play().catch(() => fallbackToBrowserTTS(text));
+              currentAudio.current = audio;
+
+              audio.onended = () => {
+                setIsSpeaking(false);
+                setPlayingMessageId(null);
+              };
+              audio.onerror = () => fallbackToBrowserTTS(text, messageId);
+              audio.play().catch(() => fallbackToBrowserTTS(text, messageId));
               return; // Success! We found a working model
             }
           }
@@ -265,11 +298,15 @@ export default function VoiceChatPage() {
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(safeText)}`;
       
       const audio = new Audio(url);
+      currentAudio.current = audio;
       
-      audio.onended = () => setIsSpeaking(false);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setPlayingMessageId(null);
+      };
       audio.onerror = () => {
         console.error('Cloud TTS failed, using offline fallback');
-        fallbackToBrowserTTS(text);
+        fallbackToBrowserTTS(text, messageId);
       };
       
       audio.play().then(() => {
@@ -277,18 +314,19 @@ export default function VoiceChatPage() {
         audioCache.current.set(text, url);
       }).catch((e) => {
         console.error('Cloud TTS play failed:', e);
-        fallbackToBrowserTTS(text);
+        fallbackToBrowserTTS(text, messageId);
       });
       
     } catch (err) {
       console.error('TTS request failed:', err);
-      fallbackToBrowserTTS(text);
+      fallbackToBrowserTTS(text, messageId);
     }
   };
 
-  const fallbackToBrowserTTS = (text: string) => {
+  const fallbackToBrowserTTS = (text: string, messageId?: string) => {
     if (!('speechSynthesis' in window)) {
       setIsSpeaking(false);
+      if (messageId) setPlayingMessageId(null);
       return;
     }
     
@@ -316,8 +354,14 @@ export default function VoiceChatPage() {
     }
 
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (messageId) setPlayingMessageId(null);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      if (messageId) setPlayingMessageId(null);
+    };
 
     window.speechSynthesis.speak(utterance);
   };
@@ -701,7 +745,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             </div>
           ) : (
             <>
-              <ChatMessages messages={messages} onSpeak={speakText} onExplain={(msg) => handleSendMessage(msg)} />
+              <ChatMessages messages={messages} onSpeak={speakText} playingMessageId={playingMessageId} onExplain={(msg) => handleSendMessage(msg)} />
               {isProcessing && (
                 <div className="flex items-center justify-center py-4">
                   <div className="flex items-center gap-2 text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-full animate-pulse">
