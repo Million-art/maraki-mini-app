@@ -179,9 +179,69 @@ export default function VoiceChatPage() {
     }
   }, []);
 
-  const speakText = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
+  const speakText = async (text: string) => {
+    setIsSpeaking(true);
 
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      if (apiKey) {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [{ text: 'Please read the following text exactly as written, without adding any commentary or extra words:\n\n' + text }]
+            }],
+            generationConfig: {
+              responseModalities: ['AUDIO'],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: 'Aoede'
+                  }
+                }
+              }
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const audioPart = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.mimeType?.startsWith('audio/'));
+          
+          if (audioPart && audioPart.inlineData?.data) {
+            const audioData = 'data:' + audioPart.inlineData.mimeType + ';base64,' + audioPart.inlineData.data;
+            const audio = new Audio(audioData);
+            audio.onended = () => setIsSpeaking(false);
+            audio.onerror = () => {
+              console.error('Gemini audio playback failed, falling back...');
+              fallbackToBrowserTTS(text);
+            };
+            audio.play().catch((e) => {
+               console.error('Play failed:', e);
+               fallbackToBrowserTTS(text);
+            });
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Gemini TTS request failed:', err);
+    }
+
+    fallbackToBrowserTTS(text);
+  };
+
+  const fallbackToBrowserTTS = (text: string) => {
+    if (!('speechSynthesis' in window)) {
+      setIsSpeaking(false);
+      return;
+    }
+    
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
