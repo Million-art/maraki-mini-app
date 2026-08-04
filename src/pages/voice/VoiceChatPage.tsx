@@ -185,7 +185,6 @@ export default function VoiceChatPage() {
   const speakText = async (text: string) => {
     setIsSpeaking(true);
 
-    // If we already generated audio for this text, use it instantly!
     if (audioCache.current.has(text)) {
       const audioData = audioCache.current.get(text)!;
       const audio = new Audio(audioData);
@@ -195,69 +194,33 @@ export default function VoiceChatPage() {
       return;
     }
 
+    // Try Google's free cloud TTS first. It sounds much better than offline OS voices,
+    // requires zero API keys, and saves all Gemini tokens!
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-      if (apiKey) {
-        // Using v1alpha with gemini-2.0-flash for audio modality support.
-        const res = await fetch('https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash:generateContent', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [{ text: 'Please read the following text exactly as written, without adding any commentary or extra words:\n\n' + text }]
-            }],
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: 'Aoede'
-                  }
-                }
-              }
-            }
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const audioPart = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.mimeType?.startsWith('audio/'));
-          
-          if (audioPart && audioPart.inlineData?.data) {
-            const audioData = 'data:' + audioPart.inlineData.mimeType + ';base64,' + audioPart.inlineData.data;
-            
-            // Save to cache so we never have to fetch it again
-            audioCache.current.set(text, audioData);
-
-            const audio = new Audio(audioData);
-            audio.onended = () => setIsSpeaking(false);
-            audio.onerror = () => {
-              console.error('Gemini audio playback failed, falling back...');
-              fallbackToBrowserTTS(text);
-            };
-            audio.play().catch((e) => {
-               console.error('Play failed:', e);
-               fallbackToBrowserTTS(text);
-            });
-            return;
-          }
-        } else {
-          const errData = await res.json().catch(() => null);
-          const errMsg = errData?.error?.message || 'Unknown error';
-          console.error('Gemini TTS failed with status:', res.status, errData);
-          alert(`Gemini Audio API Error (${res.status}): ${errMsg}\n\nFalling back to browser TTS.`);
-        }
-      }
-    } catch (err: any) {
-      console.error('Gemini TTS request failed:', err);
-      alert(`Network error during Gemini Audio API request: ${err.message}\n\nFalling back to browser TTS.`);
+      // Limits to ~200 chars for safety
+      const safeText = text.slice(0, 200);
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(safeText)}`;
+      
+      const audio = new Audio(url);
+      
+      audio.onended = () => setIsSpeaking(false);
+      audio.onerror = () => {
+        console.error('Cloud TTS failed, using offline fallback');
+        fallbackToBrowserTTS(text);
+      };
+      
+      audio.play().then(() => {
+        // Cache the URL if it successfully played
+        audioCache.current.set(text, url);
+      }).catch((e) => {
+        console.error('Cloud TTS play failed:', e);
+        fallbackToBrowserTTS(text);
+      });
+      
+    } catch (err) {
+      console.error('TTS request failed:', err);
+      fallbackToBrowserTTS(text);
     }
-
-    fallbackToBrowserTTS(text);
   };
 
   const fallbackToBrowserTTS = (text: string) => {
