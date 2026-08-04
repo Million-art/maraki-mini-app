@@ -1,15 +1,16 @@
 // @ts-nocheck
 import React from 'react';
-import { AlertCircle, Play, HelpCircle } from 'lucide-react';
+import { AlertCircle, Play, HelpCircle, Square } from 'lucide-react';
 import { computeWordDiff, type DiffToken } from '../utils/strikethrough.util';
 
 interface ChatMessagesProps {
   messages: any[];
-  onSpeak?: (text: string) => void;
+  onSpeak?: (text: string, messageId: string) => void;
   onExplain?: (text: string) => void;
+  playingMessageId?: string | null;
 }
 
-export default function ChatMessages({ messages, onSpeak, onExplain }: ChatMessagesProps) {
+export default function ChatMessages({ messages, onSpeak, onExplain, playingMessageId }: ChatMessagesProps) {
   
   const renderStrikethroughMessage = (msg: any) => {
     if (!msg.correctedText || msg.originalText === msg.correctedText) {
@@ -98,10 +99,18 @@ export default function ChatMessages({ messages, onSpeak, onExplain }: ChatMessa
                 {/* Action Chips Bar */}
                 <div className="flex items-center gap-2 pt-2 border-t border-border/60">
                   <button
-                    onClick={() => onSpeak?.(message.originalText)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
+                    onClick={() => onSpeak?.(message.originalText, message.id)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 ${
+                      playingMessageId === message.id
+                        ? 'bg-orange/10 text-orange hover:bg-orange/20'
+                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                    }`}
                   >
-                    <Play className="w-3 h-3 fill-current" /> Listen
+                    {playingMessageId === message.id ? (
+                      <><Square className="w-3 h-3 fill-current" /> Stop</>
+                    ) : (
+                      <><Play className="w-3 h-3 fill-current" /> Listen</>
+                    )}
                   </button>
 
                   {message.id !== '1' && (
