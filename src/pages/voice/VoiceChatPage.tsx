@@ -368,12 +368,14 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
   "aiReply": "A warm, natural 1-2 sentence response directly answering or continuing the specific conversation topic."
 }`;
 
-    const modelsToTry = [
-      'gemini-1.5-flash-8b',
-      'gemini-2.0-flash-lite',
-      'gemini-1.5-flash',
-      'gemini-2.0-flash',
-    ];
+    const models = {
+      basic: 'gemini-3.5-flash-lite',
+      complex: 'gemini-3.5-flash',
+      fallback: 'gemini-1.5-flash',
+      live: 'gemini-2.0-flash-lite',
+    } as Record<'basic' | 'complex' | 'fallback' | 'live', string>;
+
+    const modelsToTry = Object.values(models);
 
     let lastError = '';
     for (const modelName of modelsToTry) {
