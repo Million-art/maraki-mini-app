@@ -194,10 +194,65 @@ export default function VoiceChatPage() {
       return;
     }
 
-    // Try Google's free cloud TTS first. It sounds much better than offline OS voices,
-    // requires zero API keys, and saves all Gemini tokens!
+    // Try Gemini TTS first with the cheapest modern models
     try {
-      // Limits to ~200 chars for safety
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      if (apiKey) {
+        const modelsToTry = [
+          'gemini-3.5-flash-lite',
+          'gemini-3.1-flash',
+          'gemini-3.5-flash',
+          'gemini-2.0-flash'
+        ];
+
+        for (const modelName of modelsToTry) {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey,
+            },
+            body: JSON.stringify({
+              contents: [{
+                role: 'user',
+                parts: [{ text: 'Please read the following text exactly as written, without adding any commentary or extra words:\n\n' + text }]
+              }],
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: 'Aoede'
+                    }
+                  }
+                }
+              }
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const audioPart = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.mimeType?.startsWith('audio/'));
+            
+            if (audioPart && audioPart.inlineData?.data) {
+              const audioData = 'data:' + audioPart.inlineData.mimeType + ';base64,' + audioPart.inlineData.data;
+              
+              audioCache.current.set(text, audioData);
+              const audio = new Audio(audioData);
+              audio.onended = () => setIsSpeaking(false);
+              audio.onerror = () => fallbackToBrowserTTS(text);
+              audio.play().catch(() => fallbackToBrowserTTS(text));
+              return; // Success! We found a working model
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Gemini TTS request failed:', err);
+    }
+
+    // Ultimate fallback: Google Cloud Translate TTS (Zero cost, no API keys)
+    try {
       const safeText = text.slice(0, 200);
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(safeText)}`;
       
