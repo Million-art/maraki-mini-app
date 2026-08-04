@@ -3,20 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Mic, 
-  MicOff, 
   Sparkles, 
   Send, 
-  AlertCircle, 
-  Play, 
-  Flame, 
-  Zap, 
   Menu, 
   X, 
   Plus, 
   Trash2, 
-  Languages, 
-  HelpCircle,
   Volume2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -80,7 +72,7 @@ export default function VoiceChatPage() {
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome! I'm Maraki, your AI English Coach. Tap the mic button to talk or choose a practice quest below!",
+          originalText: "👋 Welcome to Maraki AI! Hold or tap the voice button to record your voice, or select a topic to practice speaking!",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -99,16 +91,16 @@ export default function VoiceChatPage() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [, setTranscript] = useState('');
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [xp, setXp] = useState(240);
   const [streak] = useState(5);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const currentAudio = useRef<HTMLAudioElement | null>(null);
 
   const activeThread = threads.find(t => t.id === activeThreadId) || threads[0];
   const messages = activeThread?.messages || [];
@@ -133,60 +125,8 @@ export default function VoiceChatPage() {
     scrollToBottom();
   }, [messages, isProcessing]);
 
-  // Speech Recognition setup
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
-
-      rec.onresult = (event: any) => {
-        let current = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          current += event.results[i][0].transcript;
-        }
-        setTranscript(current);
-        setInputText(current);
-      };
-
-      rec.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-      };
-
-      rec.onend = () => {
-        setIsRecording(false);
-      };
-
-      recognitionRef.current = rec;
-    }
-  }, []);
-
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-
-  useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-
-    const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
-
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-  }, []);
-
-  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const currentAudio = useRef<HTMLAudioElement | null>(null);
-  
-  // Cache for AI generated audio to save tokens and prevent back-and-forth
-  const audioCache = useRef<Map<string, string>>(new Map());
-
+  // Audio Playback using HTML5 Audio Element (Works 100% in Telegram Mini App WebViews)
   const speakText = (text: string, messageId?: string) => {
-    // If user clicks the currently playing message, stop it completely
     if (messageId && playingMessageId === messageId) {
       if (currentAudio.current) {
         currentAudio.current.pause();
@@ -205,81 +145,202 @@ export default function VoiceChatPage() {
       currentAudio.current = null;
     }
 
-    if (!('speechSynthesis' in window)) {
-      alert('Text to speech is not supported in this browser.');
-      return;
-    }
-
-    window.speechSynthesis.cancel();
     if (messageId) setPlayingMessageId(messageId);
+    setIsSpeaking(true);
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
+    try {
+      const safeText = text.slice(0, 250);
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(safeText)}`;
+      
+      const audio = new Audio(audioUrl);
+      currentAudio.current = audio;
 
-    const avail = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-    if (avail.length > 0) {
-      const bestVoice = avail.find(
-        (v) =>
-          v.lang.startsWith('en') &&
-          (v.name.includes('Google') ||
-            v.name.includes('Natural') ||
-            v.name.includes('Premium') ||
-            v.name.includes('Samantha') ||
-            v.name.includes('Jenny'))
-      ) || avail.find((v) => v.lang.startsWith('en'));
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setPlayingMessageId(null);
+        currentAudio.current = null;
+      };
 
-      if (bestVoice) {
-        utterance.voice = bestVoice;
-      }
-    }
+      audio.onerror = () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.onend = () => {
+            setIsSpeaking(false);
+            if (messageId) setPlayingMessageId(null);
+          };
+          window.speechSynthesis.speak(utterance);
+        } else {
+          setIsSpeaking(false);
+          if (messageId) setPlayingMessageId(null);
+        }
+      };
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
+      audio.play().catch(() => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.onend = () => {
+            setIsSpeaking(false);
+            if (messageId) setPlayingMessageId(null);
+          };
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+    } catch (err) {
+      console.error('Audio playback error:', err);
       setIsSpeaking(false);
       if (messageId) setPlayingMessageId(null);
-    };
-    utterance.onerror = (e) => {
-      console.error('Speech Synthesis Error:', e);
-      setIsSpeaking(false);
-      if (messageId) setPlayingMessageId(null);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in this browser. You can type your message below!');
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      if (inputText.trim()) {
-        handleSendMessage(inputText);
-      }
-    } else {
-      setTranscript('');
-      setInputText('');
-      recognitionRef.current.start();
-      setIsRecording(true);
     }
   };
 
+  // Analyze User's Recorded Voice with Gemini API (Audio -> Text -> Grammar Analysis -> AI Reply)
+  const analyzeAudioWithGemini = async (base64Audio: string, mimeType: string, history: Message[]) => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!apiKey) {
+      throw new Error('Maraki AI API key is not configured.');
+    }
+
+    const conversationContext = history
+      .slice(-4)
+      .map((m) => `${m.sender === 'user' ? 'Student' : 'Tutor'}: ${m.originalText}`)
+      .join('\n');
+
+    const prompt = `You are Maraki AI, an encouraging English voice conversation tutor.
+Listen to the student's recorded audio clip.
+
+Recent conversation context:
+${conversationContext}
+
+1. Transcribe the student's spoken words accurately into English text.
+2. Analyze the student's spoken sentence for grammar, tense, word choice, or pronunciation mistakes.
+3. Formulate a warm, natural 1-2 sentence response directly continuing the conversation.
+
+Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
+{
+  "userTranscript": "Exact transcription of what the student said in the audio",
+  "hasMistake": boolean,
+  "correctedText": "Full sentence corrected with proper English grammar, capitalization and punctuation.",
+  "grammarMistake": {
+    "type": "Short mistake type (e.g., Verb Tense, Subject-Verb Agreement, Preposition, Article, Word Choice)",
+    "explanation": "Clear 1-sentence simple explanation of why it was corrected.",
+    "nativeAlternative": "A natural phrase native speakers would use."
+  },
+  "aiReply": "A warm, natural 1-2 sentence response directly answering or continuing the specific conversation topic."
+}`;
+
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-2.0-flash',
+    ];
+
+    let lastError = '';
+    for (const modelName of modelsToTry) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: mimeType || 'audio/webm',
+                      data: base64Audio,
+                    },
+                  },
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data?.error) {
+          lastError = data.error.message || JSON.stringify(data.error);
+          continue;
+        }
+
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const cleaned = rawText.replace(/```json\s*|\s*```/g, '').trim();
+          return JSON.parse(cleaned);
+        }
+      } catch (err: any) {
+        lastError = err?.message || 'Network request failed';
+      }
+    }
+    throw new Error('Gemini Voice processing failed: ' + lastError);
+  };
+
+  // Handle recorded voice blob from Telegram Voice Button
+  const handleAudioRecorded = async (base64Audio: string, mimeType: string) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setInputText('');
+
+    try {
+      const result = await analyzeAudioWithGemini(base64Audio, mimeType, messages);
+      const userText = result.userTranscript || 'Voice recording';
+
+      const userMessageId = Date.now().toString();
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const userMsg: Message = {
+        id: userMessageId,
+        sender: 'user',
+        originalText: userText,
+        correctedText: result.correctedText || userText,
+        grammarMistake: result.hasMistake ? result.grammarMistake : undefined,
+        timestamp,
+      };
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        originalText: result.aiReply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setThreads(prevThreads => prevThreads.map(t => {
+        if (t.id === activeThreadId) {
+          return {
+            ...t,
+            title: t.messages.length <= 1 ? (userText.length > 20 ? userText.substring(0, 18) + '...' : userText) : t.title,
+            messages: [...t.messages, userMsg, aiMsg]
+          };
+        }
+        return t;
+      }));
+
+      setXp(prev => prev + 25);
+      speakText(result.aiReply, aiMsg.id);
+    } catch (err: any) {
+      console.error('Gemini Voice Processing Error:', err);
+      alert('Error processing voice with Gemini: ' + (err.message || err));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle text message submission
   const handleSendMessage = async (textToSend?: string) => {
     const messageContent = (textToSend || inputText).trim();
     if (!messageContent || isProcessing) return;
 
-    if (isRecording && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    }
-
     setInputText('');
-    setTranscript('');
     setIsProcessing(true);
 
     const userMessageId = Date.now().toString();
@@ -310,7 +371,6 @@ export default function VoiceChatPage() {
       return t;
     }));
 
-    // Award XP for participating!
     setXp(prev => prev + 15);
 
     try {
@@ -318,9 +378,10 @@ export default function VoiceChatPage() {
       try {
         analysis = await ApiService.post(API_ENDPOINTS.VOICE_ANALYZE, { text: messageContent });
       } catch (apiErr) {
-        console.warn('Fallback to direct Gemini call:', apiErr);
         analysis = await analyzeWithGemini(messageContent, messages);
       }
+
+      const aiMsgId = (Date.now() + 1).toString();
 
       setThreads(prevThreads => prevThreads.map(t => {
         if (t.id === activeThreadId) {
@@ -335,7 +396,7 @@ export default function VoiceChatPage() {
           );
 
           const aiMsg: Message = {
-            id: (Date.now() + 1).toString(),
+            id: aiMsgId,
             sender: 'ai',
             originalText: analysis.aiReply,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -349,7 +410,7 @@ export default function VoiceChatPage() {
         return t;
       }));
 
-      speakText(analysis.aiReply);
+      speakText(analysis.aiReply, aiMsgId);
     } catch (err: any) {
       console.error('[Maraki AI Error]:', err);
       const errorMessage = err?.message || 'An error occurred while connecting to Maraki AI.';
@@ -387,12 +448,12 @@ export default function VoiceChatPage() {
       .join('\n');
 
     const prompt = `You are Maraki AI, an encouraging English voice conversation tutor.
-The student spoke: "${userText}"
+The student wrote: "${userText}"
 
 Recent conversation context:
 ${conversationContext}
 
-Analyze the student's spoken sentence for grammar, tense, word choice, or punctuation mistakes.
+Analyze the student's text for grammar, tense, word choice, or punctuation mistakes.
 Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 {
   "hasMistake": boolean,
@@ -405,14 +466,11 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
   "aiReply": "A warm, natural 1-2 sentence response directly answering or continuing the specific conversation topic."
 }`;
 
-    const models = {
-      basic: 'gemini-3.5-flash-lite',
-      complex: 'gemini-3.5-flash',
-      fallback: 'gemini-1.5-flash',
-      live: 'gemini-2.0-flash-lite',
-    } as Record<'basic' | 'complex' | 'fallback' | 'live', string>;
-
-    const modelsToTry = Object.values(models);
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-2.0-flash',
+    ];
 
     let lastError = '';
     for (const modelName of modelsToTry) {
@@ -441,43 +499,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
         lastError = err?.message || 'Network request failed';
       }
     }
-    throw new Error('Maraki AI service is temporarily offline. ' + lastError);
-  };
-
-  const renderStrikethroughMessage = (msg: Message) => {
-    if (!msg.correctedText || msg.originalText === msg.correctedText) {
-      return <span>{msg.originalText}</span>;
-    }
-
-    const diffTokens: DiffToken[] = computeWordDiff(msg.originalText, msg.correctedText);
-
-    return (
-      <div className="flex flex-wrap gap-1 items-center">
-        {diffTokens.map((token, idx) => {
-          if (token.type === 'removed') {
-            return (
-              <span
-                key={idx}
-                className="line-through text-orange bg-orange/10 px-1 py-0.5 rounded font-semibold text-[13px]"
-              >
-                {token.text}
-              </span>
-            );
-          }
-          if (token.type === 'added') {
-            return (
-              <span
-                key={idx}
-                className="text-dark bg-lime px-1.5 py-0.5 rounded font-extrabold text-[13px]"
-              >
-                {token.text}
-              </span>
-            );
-          }
-          return <span key={idx}>{token.text}</span>;
-        })}
-      </div>
-    );
+    throw new Error('Maraki AI service temporarily offline: ' + lastError);
   };
 
   const handleNewSession = () => {
@@ -490,7 +512,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome to a new practice session! What topic would you like to explore today?",
+          originalText: "👋 Welcome to a new practice session! Speak into the mic or select a topic to practice.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -588,7 +610,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 
               <div className="p-4 border-t border-light-dim text-center">
                 <p className="text-[10px] text-dark/40 uppercase tracking-widest font-bold">
-                  Maraki AI Companion v2.5
+                  Maraki AI Voice Companion v2.8
                 </p>
               </div>
             </motion.aside>
@@ -607,7 +629,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
             <div className="flex items-center gap-2">
               <Volume2 className={cn("w-4 h-4 text-primary", isSpeaking && "animate-pulse")} />
               <span>
-                {isRecording ? "Listening to your voice..." : isSpeaking ? "Maraki AI is speaking..." : "Analyzing response..."}
+                {isRecording ? "Recording Telegram Voice Message..." : isSpeaking ? "Maraki AI is speaking..." : "Gemini is analyzing your voice..."}
               </span>
             </div>
             {/* Animated Equalizer Sound Bars */}
@@ -631,16 +653,16 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
                     BACK!
                   </h1>
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground font-semibold">Ready to practice?</p>
+                    <p className="text-sm text-muted-foreground font-semibold">Ready to practice speaking?</p>
                     <p className="text-base text-foreground leading-relaxed">
-                      Start a conversation with Maraki AI and practice your English speaking and writing skills.
+                      Speak into the microphone to have Gemini transcribe your speech, analyze your grammar, and reply with audio.
                     </p>
                   </div>
                 </div>
                 <div className="bg-primary text-primary-foreground rounded-3xl p-5 space-y-2.5 shadow-lg">
-                  <p className="text-sm font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Speaking Tip</p>
+                  <p className="text-sm font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Voice Practice Tip</p>
                   <p className="text-xs leading-relaxed opacity-95">
-                    Tap the mic button to speak naturally, or pick a practice topic below to begin your session.
+                    Tap the microphone button to start Telegram-style voice recording. Tap again when done to get instant feedback and audio reply!
                   </p>
                 </div>
               </div>
@@ -657,7 +679,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
                 <div className="flex items-center justify-center py-4">
                   <div className="flex items-center gap-2 text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-full animate-pulse">
                     <Sparkles className="w-4 h-4" />
-                    Maraki AI is generating response...
+                    Gemini AI is processing your voice...
                   </div>
                 </div>
               )}
@@ -666,7 +688,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
           )}
         </div>
 
-        {/* Practice Quests / Suggested Cards - Display Title and Type (Category) only */}
+        {/* Practice Quests / Suggested Cards - Title and Type (Category) only */}
         <div className="px-4 py-2.5 flex gap-2 overflow-x-auto no-scrollbar shrink-0 bg-card border-t border-border">
           {TOPICS.map((topic, idx) => (
             <button
@@ -697,6 +719,7 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
         <div className="border-t border-border bg-card px-4 md:px-6 py-3.5 shrink-0 z-20">
           <div className="max-w-3xl mx-auto flex gap-3 items-center">
             <VoiceButton
+              onAudioRecorded={handleAudioRecorded}
               onTranscript={(text) => setInputText(text)}
               onListeningChange={(listening) => setIsRecording(listening)}
               disabled={isProcessing}
