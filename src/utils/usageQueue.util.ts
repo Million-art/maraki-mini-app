@@ -59,15 +59,14 @@ export const UsageQueue = {
     const url = `${baseUrl}/api/student/usage/${telegramId}/increment-live-seconds`;
     const payload = JSON.stringify({ durationSeconds: Math.round(durationSeconds) });
 
-    try {
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      });
-    } catch {
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {
+      // If the fetch fails asynchronously (e.g. network error), enqueue it for offline retry
       this.enqueue(telegramId, durationSeconds);
-    }
+    });
   },
 };
