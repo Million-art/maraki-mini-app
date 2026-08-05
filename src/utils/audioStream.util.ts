@@ -76,7 +76,7 @@ export class AudioRecorder {
     return int16Array;
   }
 
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+  private arrayBufferToBase64(buffer: ArrayBufferLike): string {
     let binary = '';
     const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
@@ -110,7 +110,7 @@ export class AudioPlayer {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    const int16 = new Int16Array(bytes.buffer);
+    const int16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
     const float32 = new Float32Array(int16.length);
     for (let i = 0; i < int16.length; i++) {
       float32[i] = int16[i] / (int16[i] < 0 ? 32768 : 32767);

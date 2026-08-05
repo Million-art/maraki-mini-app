@@ -4,17 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
   Send,
-  Menu,
   X,
   Plus,
   Trash2,
   Volume2,
   PhoneCall,
   PhoneOff,
-  Mic,
   Activity,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+declare global {
+  interface Window {
+    Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number } } } };
+  }
+}
 import { ApiService, API_ENDPOINTS } from '../../config/api';
 import { GeminiLiveService } from '../../services/geminiLive.service';
 
@@ -43,14 +47,14 @@ interface ChatThread {
 }
 
 const TOPICS = [
-  { label: '☕ Daily Routine', category: 'General', level: 'Easy', prompt: 'Tell me about what you usually do in the morning!' },
-  { label: '💼 Job Interview', category: 'Career', level: 'Intermediate', prompt: 'Tell me about yourself and your professional strengths.' },
-  { label: '✈️ Travel & Flying', category: 'Lifestyle', level: 'Easy', prompt: 'Where is your dream travel destination and why?' },
-  { label: '⚽ Hobbies & Sports', category: 'Social', level: 'Fun', prompt: 'What do you love doing in your free time?' },
+  { label: ' Daily Routine', category: 'General', level: 'Easy', prompt: 'Tell me about what you usually do in the morning!' },
+  { label: ' Job Interview', category: 'Career', level: 'Intermediate', prompt: 'Tell me about yourself and your professional strengths.' },
+  { label: ' Travel & Flying', category: 'Lifestyle', level: 'Easy', prompt: 'Where is your dream travel destination and why?' },
+  { label: ' Hobbies & Sports', category: 'Social', level: 'Fun', prompt: 'What do you love doing in your free time?' },
 ];
 
 export default function VoiceChatPage() {
-  const { isDarkMode } = useOutletContext<{ isDarkMode: boolean }>();
+  useOutletContext<{ isDarkMode: boolean }>();
 
   // Load threads from local storage
   const [threads, setThreads] = useState<ChatThread[]>(() => {
@@ -302,71 +306,7 @@ export default function VoiceChatPage() {
     }
   };
 
-  const analyzeWithGemini = async (userText: string, history: Message[]) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-    if (!apiKey) {
-      throw new Error('Maraki AI API key is not configured.');
-    }
 
-    const conversationContext = history
-      .slice(-4)
-      .map((m) => `${m.sender === 'user' ? 'Student' : 'Tutor'}: ${m.originalText}`)
-      .join('\n');
-
-    const prompt = `You are Maraki AI, an encouraging English voice conversation tutor.
-The student wrote: "${userText}"
-
-Recent conversation context:
-${conversationContext}
-
-Analyze the student's text for grammar, tense, word choice, or punctuation mistakes.
-Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
-{
-  "hasMistake": boolean,
-  "correctedText": "Full sentence corrected with proper English grammar, capitalization and punctuation.",
-  "grammarMistake": {
-    "type": "Short mistake type (e.g., Verb Tense, Subject-Verb Agreement, Preposition, Article, Word Choice)",
-    "explanation": "Clear 1-sentence simple explanation of why it was corrected.",
-    "nativeAlternative": "A natural phrase native speakers would use."
-  },
-  "aiReply": "A warm, natural 1-2 sentence response directly answering or continuing the specific conversation topic."
-}`;
-
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-2.0-flash',
-    ];
-
-    let lastError = '';
-    for (const modelName of modelsToTry) {
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
-        const data = await res.json();
-
-        if (data?.error) {
-          lastError = data.error.message || JSON.stringify(data.error);
-          continue;
-        }
-
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          const cleaned = rawText.replace(/```json\s*|\s*```/g, '').trim();
-          return JSON.parse(cleaned);
-        }
-      } catch (err: any) {
-        lastError = err?.message || 'Network request failed';
-      }
-    }
-    throw new Error('Maraki AI service temporarily offline: ' + lastError);
-  };
 
   const handleNewSession = () => {
     const newId = Date.now().toString();
@@ -489,14 +429,14 @@ Return ONLY a raw JSON object (no markdown, no backticks) with these exact keys:
 
         <Header onOpenSidebar={() => setIsSidebarOpen(true)} streak={streak} xp={xp} />
 
-        {/* Live Speech Waveform / Audio State Bar */}
-        {(isRecording || isSpeaking || isProcessing) && (
-          <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center justify-between text-xs font-semibold text-muted-foreground shrink-0">
-            <div className="flex items-center gap-2">
-              <Volume2 className={cn("w-4 h-4 text-primary", isSpeaking && "animate-pulse")} />
-              <span>
-                {isRecording ? "Recording Telegram Voice Message..." : isSpeaking ? "Maraki AI is speaking..." : "Gemini is analyzing your voice..."}
-              </span>
+        {/* Processing State Bar */}
+        {isProcessing && (
+          <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2 text-xs font-semibold text-muted-foreground shrink-0">
+            <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+            <span>Gemini is analyzing...</span>
+          </div>
+        )}
+
         {/* Gemini 3.1 Flash Live Call Active Banner */}
         {liveStatus !== 'disconnected' && (
           <div className="bg-emerald-600 text-white px-4 py-3 flex items-center justify-between shadow-md shrink-0 border-b border-emerald-700 animate-fadeIn">

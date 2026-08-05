@@ -1,4 +1,5 @@
 import { ApiService, API_ENDPOINTS } from '../config/api';
+export { ApiService, API_ENDPOINTS };
 import type { 
   Material, 
   Quiz, 
