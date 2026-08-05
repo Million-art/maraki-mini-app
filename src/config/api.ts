@@ -91,6 +91,8 @@ export const API_ENDPOINTS = {
   
   // AI Voice Practice
   VOICE_ANALYZE: '/api/student/voice-analyze',
+  LIVE_TOKEN: '/api/student/live-token',
+  STUDENTS: '/api/student/usage',
   
   // Health
   HEALTH: '/health',
