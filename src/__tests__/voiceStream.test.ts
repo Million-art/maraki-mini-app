@@ -200,24 +200,28 @@ describe('UsageQueue', () => {
     expect(UsageQueue.getQueue()).toHaveLength(0);
   });
 
-  it('sendBeaconSync() calls navigator.sendBeacon with the increment-live-seconds URL', () => {
+  it('sendBeaconSync() calls fetch with keepalive and the correct URL', () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() => Promise.resolve(new Response()));
     UsageQueue.sendBeaconSync(999, 75);
-    expect(navigator.sendBeacon).toHaveBeenCalledWith(
-      '/api/student/usage/999/increment-live-seconds',
-      expect.any(Blob),
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/student/usage/999/increment-live-seconds'),
+      expect.objectContaining({ method: 'POST', keepalive: true })
     );
   });
 
-  it('sendBeaconSync() payload blob has non-zero size', () => {
+  it('sendBeaconSync() payload contains the exact durationSeconds (rounded)', () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() => Promise.resolve(new Response()));
     UsageQueue.sendBeaconSync(42, 50.8);
-    const call = (navigator.sendBeacon as ReturnType<typeof vi.fn>).mock.calls[0];
-    const blob: Blob = call[1];
-    expect(blob.size).toBeGreaterThan(0);
+    const call = fetchSpy.mock.calls[0];
+    const options = call[1] as RequestInit;
+    const body = JSON.parse(options.body as string);
+    expect(body.durationSeconds).toBe(51); // 50.8 rounded
   });
 
   it('sendBeaconSync() does nothing for zero duration', () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
     UsageQueue.sendBeaconSync(123456, 0);
-    expect(navigator.sendBeacon).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('syncPendingUsage() clears queue after successful POST', async () => {

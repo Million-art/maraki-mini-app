@@ -54,13 +54,19 @@ export const UsageQueue = {
 
   sendBeaconSync(telegramId: number, durationSeconds: number): void {
     if (!telegramId || durationSeconds <= 0) return;
-    const url = `/api/student/usage/${telegramId}/increment-live-seconds`;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+    // Use keepalive fetch instead of sendBeacon for better CORS/JSON support
+    const url = `${baseUrl}/api/student/usage/${telegramId}/increment-live-seconds`;
     const payload = JSON.stringify({ durationSeconds: Math.round(durationSeconds) });
 
-    if (navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon(url, blob);
-    } else {
+    try {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      });
+    } catch {
       this.enqueue(telegramId, durationSeconds);
     }
   },
