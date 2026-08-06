@@ -172,12 +172,10 @@ export class GeminiLiveClient {
 
     const pcmMsg = {
       realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: 'audio/pcm;rate=16000',
-            data: base64PcmAudio,
-          },
-        ],
+        audio: {
+          mimeType: 'audio/pcm;rate=16000',
+          data: base64PcmAudio,
+        },
       },
     };
 
@@ -192,12 +190,10 @@ export class GeminiLiveClient {
 
     const imgMsg = {
       realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType,
-            data: base64Image,
-          },
-        ],
+        video: {
+          mimeType,
+          data: base64Image,
+        },
       },
     };
 
