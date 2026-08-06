@@ -121,6 +121,7 @@ export default function VoiceChatPage() {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string>('Dating');
   const [textInputValue, setTextInputValue] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
@@ -268,6 +269,7 @@ export default function VoiceChatPage() {
       return t;
     }));
 
+    setIsAiTyping(true);
     setTimeout(() => scrollToBottom(), 50);
 
     // Call NestJS Gemini 2.0 Flash Lite chat completion endpoint for fast text conversation
@@ -276,6 +278,8 @@ export default function VoiceChatPage() {
         message: userText,
         history: currentHistory,
       });
+
+      setIsAiTyping(false);
 
       const replyText = chatRes?.reply || chatRes?.text || "That's great! Keep practicing your English!";
       
@@ -298,6 +302,7 @@ export default function VoiceChatPage() {
 
       setTimeout(() => scrollToBottom(), 100);
     } catch (err: any) {
+      setIsAiTyping(false);
       console.error('Gemini API Error:', err);
       const errMsg = err?.response?.data?.message || err?.message || 'Gemini API free-tier quota is currently exhausted. Please try again in 15 seconds.';
       setLiveError(errMsg);
@@ -649,6 +654,7 @@ export default function VoiceChatPage() {
                   messages={messages}
                   onSpeak={handleSpeakClick}
                   playingMessageId={playingMessageId}
+                  isTyping={isAiTyping}
                 />
                 <div ref={messagesEndRef} />
               </div>

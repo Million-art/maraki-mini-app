@@ -8,9 +8,10 @@ interface ChatMessagesProps {
   onSpeak?: (text: string, messageId: string) => void;
   onExplain?: (text: string) => void;
   playingMessageId?: string | null;
+  isTyping?: boolean;
 }
 
-export default function ChatMessages({ messages, onSpeak, onExplain, playingMessageId }: ChatMessagesProps) {
+export default function ChatMessages({ messages, onSpeak, onExplain, playingMessageId, isTyping }: ChatMessagesProps) {
   
   const renderStrikethroughMessage = (msg: any) => {
     if (!msg.correctedText || msg.originalText === msg.correctedText) {
@@ -100,6 +101,23 @@ export default function ChatMessages({ messages, onSpeak, onExplain, playingMess
           </div>
         </div>
       ))}
+
+      {/* Maraki AI Animated Typing Indicator */}
+      {isTyping && (
+        <div className="flex justify-start animate-fadeIn">
+          <div className="max-w-xs px-5 py-3 rounded-3xl bg-white border border-gray-200/80 rounded-tl-sm shadow-sm space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Maraki Coach</span>
+              <span className="text-[10px] text-[#FF5500] font-semibold animate-pulse">is typing...</span>
+            </div>
+            <div className="flex items-center gap-1.5 py-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
