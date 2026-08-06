@@ -19,9 +19,11 @@ import {
   Menu,
   CheckCircle2,
   MessageSquare,
+  Send,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
+import ChatInput from '../../components/ChatInput';
 
 import connectedMascot from '../../assets/connected.png';
 import listeningMascot from '../../assets/listening.png';
@@ -117,6 +119,7 @@ export default function VoiceChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string>('Dating');
+  const [textInputValue, setTextInputValue] = useState('');
 
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
@@ -237,6 +240,43 @@ export default function VoiceChatPage() {
 
     liveServiceRef.current = service;
     service.startSession();
+  };
+
+  const handleSendTextMessage = () => {
+    if (!textInputValue.trim()) return;
+
+    const userText = textInputValue.trim();
+    setTextInputValue('');
+
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      originalText: userText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setThreads(prevThreads => prevThreads.map(t => {
+      if (t.id === activeThreadId) {
+        return {
+          ...t,
+          messages: [...t.messages, newMsg]
+        };
+      }
+      return t;
+    }));
+
+    if (liveServiceRef.current && isCallActive) {
+      liveServiceRef.current.sendTextMessage(userText);
+    } else {
+      toggleLiveCall();
+      setTimeout(() => {
+        liveServiceRef.current?.sendTextMessage(userText);
+      }, 1000);
+    }
+
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
   };
 
   const formatTimer = (seconds: number) => {
@@ -587,6 +627,31 @@ export default function VoiceChatPage() {
                 />
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Text Input Footer for Direct Chatting */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendTextMessage();
+                }}
+                className="p-3 border-t border-gray-100 bg-white flex items-center gap-2 shrink-0"
+              >
+                <div className="flex-1">
+                  <ChatInput
+                    value={textInputValue}
+                    onChange={(e) => setTextInputValue(e.target.value)}
+                    placeholder="Type your message to Maraki AI..."
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!textInputValue.trim()}
+                  className="w-11 h-11 rounded-full bg-[#FF5500] hover:bg-[#E64D00] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-md active:scale-95 transition-all shrink-0"
+                  aria-label="Send text message"
+                >
+                  <Send className="w-5 h-5 text-white" />
+                </button>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
