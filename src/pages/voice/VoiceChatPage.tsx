@@ -246,24 +246,26 @@ export default function VoiceChatPage() {
     service.startSession();
   };
 
-  const handleSendTextMessage = () => {
+  const handleSendTextMessage = async () => {
     if (!textInputValue.trim()) return;
 
     const userText = textInputValue.trim();
     setTextInputValue('');
 
-    const newMsg: Message = {
+    const userMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
       originalText: userText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
+    const currentHistory = activeThread?.messages || [];
+
     setThreads(prevThreads => prevThreads.map(t => {
       if (t.id === activeThreadId) {
         return {
           ...t,
-          messages: [...t.messages, newMsg]
+          messages: [...t.messages, userMsg]
         };
       }
       return t;
@@ -272,17 +274,80 @@ export default function VoiceChatPage() {
     setIsAiTyping(true);
     setTimeout(() => scrollToBottom(), 50);
 
-    // Send text message directly over real-time WebSocket connection
-    if (liveServiceRef.current && (liveStatus === 'connected' || liveStatus === 'listening' || liveStatus === 'speaking')) {
-      liveServiceRef.current.sendTextMessage(userText);
-    } else {
-      // Initialize WebSocket connection and send message over WebSocket
-      toggleLiveCall();
-      setTimeout(() => {
-        if (liveServiceRef.current) {
-          liveServiceRef.current.sendTextMessage(userText);
+    const aiMsgId = (Date.now() + 1).toString();
+    let accumulatedText = '';
+    let isMessageAdded = false;
+
+    try {
+      const response = await fetch('http://localhost:3000/api/gemini/chat-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userText,
+          history: currentHistory,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to connect to real-time chat stream');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.replace('data: ', '').trim();
+            if (!jsonStr) continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              if (data.text) {
+                setIsAiTyping(false);
+                accumulatedText += data.text;
+
+                setThreads(prevThreads => prevThreads.map(t => {
+                  if (t.id === activeThreadId) {
+                    if (!isMessageAdded) {
+                      isMessageAdded = true;
+                      const aiMsg: Message = {
+                        id: aiMsgId,
+                        sender: 'ai',
+                        originalText: accumulatedText,
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      };
+                      return { ...t, messages: [...t.messages, aiMsg] };
+                    } else {
+                      return {
+                        ...t,
+                        messages: t.messages.map(m =>
+                          m.id === aiMsgId ? { ...m, originalText: accumulatedText } : m
+                        ),
+                      };
+                    }
+                  }
+                  return t;
+                }));
+                scrollToBottom();
+              }
+            } catch (e) {
+              // ignore parse errors on partial chunks
+            }
+          }
         }
-      }, 700);
+      }
+      setIsAiTyping(false);
+    } catch (err: any) {
+      setIsAiTyping(false);
+      console.error('Real-time Stream Error:', err);
+      setLiveError(err?.message || 'Chat stream connection error.');
     }
   };
 

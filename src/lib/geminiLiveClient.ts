@@ -51,8 +51,10 @@ export class GeminiLiveClient {
 
     this.options.onStatusChange?.('connecting');
 
-    // The Gemini Live WebSocket endpoint format for ephemeral tokens
-    const wsUrl = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${ephemeralToken}`;
+    const isApiKey = ephemeralToken.startsWith('AIzaSy');
+    const wsUrl = isApiKey
+      ? `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${ephemeralToken}`
+      : `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${ephemeralToken}`;
 
     return new Promise((resolve, reject) => {
       try {
@@ -118,7 +120,7 @@ export class GeminiLiveClient {
 
     const setupMsg = {
       setup: {
-        model: 'models/gemini-3.1-flash-live',
+        model: 'models/gemini-2.0-flash-exp',
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
