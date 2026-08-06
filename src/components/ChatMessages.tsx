@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { AlertCircle, Play, HelpCircle, Square } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { computeWordDiff, type DiffToken } from '../utils/strikethrough.util';
 
 interface ChatMessagesProps {
@@ -95,33 +95,6 @@ export default function ChatMessages({ messages, onSpeak, onExplain, playingMess
             ) : (
               <div className="space-y-3">
                 <p className="text-base leading-relaxed">{message.originalText}</p>
-                
-                {/* Action Chips Bar */}
-                <div className="flex items-center gap-2 pt-2 border-t border-border/60">
-                  <button
-                    onClick={() => onSpeak?.(message.originalText, message.id)}
-                    className={`text-xs px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 ${
-                      playingMessageId === message.id
-                        ? 'bg-orange/10 text-orange hover:bg-orange/20'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20'
-                    }`}
-                  >
-                    {playingMessageId === message.id ? (
-                      <><Square className="w-3 h-3 fill-current" /> Stop</>
-                    ) : (
-                      <><Play className="w-3 h-3 fill-current" /> Listen</>
-                    )}
-                  </button>
-
-                  {message.id !== '1' && (
-                    <button
-                      onClick={() => onExplain?.(`Can you explain the grammar behind "${message.originalText.slice(0, 30)}..."?`)}
-                      className="text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-all flex items-center gap-1"
-                    >
-                      <HelpCircle className="w-3 h-3" /> Explain
-                    </button>
-                  )}
-                </div>
               </div>
             )}
           </div>

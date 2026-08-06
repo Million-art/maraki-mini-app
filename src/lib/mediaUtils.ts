@@ -20,19 +20,22 @@ export class AudioStreamer {
     if (this.isStreaming) return true;
 
     try {
-      const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      };
-
-      if (deviceId) {
-        audioConstraints.deviceId = { exact: deviceId };
+      try {
+        const audioConstraints: MediaTrackConstraints = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+        if (deviceId) {
+          audioConstraints.deviceId = { exact: deviceId };
+        }
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints,
+        });
+      } catch (constraintErr) {
+        console.warn('Constrained getUserMedia failed, retrying with fallback { audio: true }...', constraintErr);
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
-
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints,
-      });
 
       if (!this.audioContext) {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
