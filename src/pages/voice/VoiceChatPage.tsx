@@ -604,7 +604,7 @@ export default function VoiceChatPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="absolute inset-x-0 bottom-28 top-20 bg-white border-t border-gray-200 z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
+              className="absolute inset-x-0 bottom-0 top-16 bg-white border-t border-gray-200 z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                 <div className="flex items-center gap-2">
@@ -634,8 +634,19 @@ export default function VoiceChatPage() {
                   e.preventDefault();
                   handleSendTextMessage();
                 }}
-                className="p-3 border-t border-gray-100 bg-white flex items-center gap-2 shrink-0"
+                className="p-3 pb-8 sm:pb-6 border-t border-gray-100 bg-white flex items-center gap-2 shrink-0"
               >
+                {/* Voice Call Mode Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsTranscriptOpen(false)}
+                  className="w-11 h-11 rounded-full border border-gray-200 bg-[#22C55E]/10 hover:bg-[#22C55E]/20 text-[#22C55E] flex items-center justify-center shadow-xs active:scale-95 transition-all shrink-0"
+                  title="Switch to Voice Mode"
+                  aria-label="Switch to Voice Mode"
+                >
+                  <Mic className="w-5 h-5 text-[#22C55E]" />
+                </button>
+
                 <div className="flex-1">
                   <ChatInput
                     value={textInputValue}
@@ -656,9 +667,10 @@ export default function VoiceChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Bottom Call Control Panel (Floating Glass Panel) */}
-        <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
-          <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
+        {/* Bottom Call Control Panel (Only visible in Voice mode) */}
+        {!isTranscriptOpen && (
+          <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
+            <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
 
             {/* 1. Mute Button */}
             <div className="flex flex-col items-center gap-1">
@@ -743,6 +755,7 @@ export default function VoiceChatPage() {
 
           </div>
         </div>
+        )}
 
       </div>
     </div>
