@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   X,
+  ArrowLeft,
   Plus,
   Trash2,
   Volume2,
@@ -12,11 +12,13 @@ import {
   Mic,
   MicOff,
   FileText,
-  Calendar,
   Briefcase,
+  MessageCircle,
   Plane,
-  Smile,
+  Heart,
+  Users,
   ChevronUp,
+  Menu,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
@@ -27,7 +29,6 @@ declare global {
   }
 }
 import { GeminiLiveService } from '../../services/geminiLive.service';
-import Header from '../../components/Header';
 import ChatMessages from '../../components/ChatMessages';
 
 interface Message {
@@ -50,11 +51,22 @@ interface ChatThread {
   createdTime: number;
 }
 
+// Stylized MA Logo (Green M, Orange A)
+function MALogo({ className = "w-10 h-10" }: { className?: string }) {
+  return (
+    <div className={cn("relative flex items-center justify-center font-black tracking-tighter text-xl leading-none select-none", className)}>
+      <span className="text-[#7CBD00]">M</span>
+      <span className="text-[#FF5500] -ml-1">A</span>
+    </div>
+  );
+}
+
 const TOPICS = [
-  { label: 'Daily Routine', category: 'General', icon: Calendar, prompt: 'Tell me about what you usually do in the morning!' },
   { label: 'Job Interview', category: 'Career', icon: Briefcase, prompt: 'Tell me about yourself and your professional strengths.' },
+  { label: 'Career', category: 'General', icon: MessageCircle, prompt: 'What are your career goals for the future?' },
   { label: 'Travel & Flying', category: 'Travel', icon: Plane, prompt: 'Where is your dream travel destination and why?' },
-  { label: 'Hobbies & Sports', category: 'Social', icon: Smile, prompt: 'What do you love doing in your free time?' },
+  { label: 'Dating', category: 'Lifestyle', icon: Heart, prompt: 'What traits do you look for in a partner?' },
+  { label: 'Social Skills', category: 'Social', icon: Users, prompt: 'How do you easily start a conversation with a new friend?' },
 ];
 
 export default function VoiceChatPage() {
@@ -81,7 +93,7 @@ export default function VoiceChatPage() {
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome to Maraki AI Live Voice Call! Tap the glowing orange microphone to start speaking.",
+          originalText: "👋 Welcome to Maraki AI Live Voice Coach! Tap 'Speak' to talk directly with your AI tutor.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -100,13 +112,13 @@ export default function VoiceChatPage() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<string>('Job Interview');
 
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
 
-  // Gemini 3.1 Flash Live API States
+  // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'error'>('disconnected');
   const [liveError, setLiveError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
@@ -239,7 +251,7 @@ export default function VoiceChatPage() {
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome to a new live call session! Tap the orange mic button to speak.",
+          originalText: "👋 Welcome to a new live call session! Tap 'Speak' to talk.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -262,12 +274,12 @@ export default function VoiceChatPage() {
     }
   };
 
-  // Derive call state text and styling
   const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
+
   const getStatusText = () => {
     switch (liveStatus) {
       case 'connecting':
-        return 'Connecting to Maraki AI...';
+        return 'Connecting...';
       case 'listening':
         return "I'm listening...";
       case 'speaking':
@@ -282,7 +294,7 @@ export default function VoiceChatPage() {
   };
 
   return (
-    <div className="flex h-full bg-gradient-to-b from-orange-50/50 via-background to-orange-100/30 text-foreground font-sans select-none overflow-hidden w-full relative">
+    <div className="flex h-full bg-white text-gray-900 font-sans select-none overflow-hidden w-full relative">
 
       {/* Session Drawer Sidebar */}
       <AnimatePresence>
@@ -293,7 +305,7 @@ export default function VoiceChatPage() {
               animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm"
+              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
             />
 
             <motion.aside
@@ -301,27 +313,31 @@ export default function VoiceChatPage() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 240 }}
-              className="fixed md:static inset-y-0 left-0 w-72 bg-card border-r border-border flex flex-col z-50 h-full shadow-2xl"
+              className="fixed inset-y-0 left-0 w-80 bg-white border-r border-gray-200 flex flex-col z-50 h-full shadow-2xl"
             >
-              <div className="flex items-center justify-between px-5 py-5 border-b border-border">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-orange flex items-center justify-center text-white shadow-md shadow-orange/30">
-                    <Sparkles className="h-4.5 w-4.5" />
-                  </div>
-                  <span className="font-extrabold text-lg uppercase tracking-wider text-foreground">Maraki AI</span>
-                </div>
+              <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
                 <button
                   onClick={() => setIsSidebarOpen(false)}
-                  className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all md:hidden"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-gray-700 hover:text-black hover:bg-gray-100 font-bold text-xs transition-all border border-gray-200"
                 >
-                  <X className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4 text-black" />
+                  <span>Back</span>
                 </button>
+
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-xs">
+                    <MALogo className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-extrabold text-sm text-gray-900 leading-none">Maraki AI</h2>
+                  </div>
+                </div>
               </div>
 
               <div className="p-4">
                 <button
                   onClick={handleNewSession}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-orange text-white font-bold text-sm hover:bg-orange/90 active:scale-98 transition-all shadow-lg shadow-orange/25"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#7CBD00] text-white font-bold text-sm hover:bg-[#6FA800] active:scale-98 transition-all shadow-md shadow-[#7CBD00]/25"
                 >
                   <Plus className="h-4 w-4" /> New Practice Session
                 </button>
@@ -338,14 +354,14 @@ export default function VoiceChatPage() {
                     className={cn(
                       "group flex items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all cursor-pointer border",
                       thread.id === activeThreadId
-                        ? "bg-orange/10 border-orange/30 text-orange shadow-sm"
-                        : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        ? "bg-[#7CBD00]/10 border-[#7CBD00]/30 text-[#7CBD00] shadow-xs"
+                        : "border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
                     <span className="truncate flex-1 pr-2">{thread.title}</span>
                     <button
                       aria-label={`Delete ${thread.title}`}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-muted-foreground hover:text-red-600 hover:bg-muted transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-gray-100 transition-all"
                       onClick={(e) => handleDeleteSession(thread.id, e)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -354,9 +370,9 @@ export default function VoiceChatPage() {
                 ))}
               </nav>
 
-              <div className="p-4 border-t border-border text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                  Maraki Live Call v3.0
+              <div className="p-4 border-t border-gray-100 text-center">
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                  Maraki AI Live v3.2
                 </p>
               </div>
             </motion.aside>
@@ -365,12 +381,36 @@ export default function VoiceChatPage() {
       </AnimatePresence>
 
       {/* Main App Container */}
-      <div className="flex-1 flex flex-col h-full min-w-0 relative z-10">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white">
 
-        <Header onOpenSidebar={() => setIsSidebarOpen(true)} />
+        {/* Top Header Bar */}
+        <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
+              aria-label="Open sidebar menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-xs">
+              <MALogo className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Maraki AI Live</h1>
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">VOICE COACH</span>
+            </div>
+          </div>
 
-        {/* Suggested Topics Carousel */}
-        <div className="px-4 py-2.5 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 bg-white/50 dark:bg-card/50 backdrop-blur-md border-b border-border/40 justify-center">
+          {/* Top Right LIVE Pill Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-gray-200 bg-white text-[11px] font-bold text-[#7CBD00] shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-[#7CBD00] animate-pulse" />
+            <span>LIVE</span>
+          </div>
+        </header>
+
+        {/* Suggested Topics Pill Carousel */}
+        <div className="px-4 py-3 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 justify-center border-b border-gray-50">
           {TOPICS.map((topic, idx) => {
             const IconComponent = topic.icon;
             const isSelected = selectedTopic === topic.label;
@@ -384,147 +424,103 @@ export default function VoiceChatPage() {
                   }
                 }}
                 className={cn(
-                  'whitespace-nowrap px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-sm active:scale-95',
+                  'whitespace-nowrap px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-2xs active:scale-95',
                   isSelected
-                    ? 'bg-orange border-orange text-white shadow-md shadow-orange/25'
-                    : 'bg-orange/10 border-orange/20 text-foreground hover:bg-orange/20'
+                    ? 'bg-[#7CBD00] border-[#7CBD00] text-white shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-[#7CBD00]/60'
                 )}
               >
-                <span className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
-                  isSelected
-                    ? 'bg-white/20 text-white'
-                    : 'bg-orange/15 text-orange'
-                )}>
-                  <IconComponent className="w-3.5 h-3.5 stroke-[2.2]" />
-                </span>
-                <span className="text-xs font-bold">{topic.label}</span>
-                <span className={cn(
-                  'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                  isSelected ? 'bg-white/20 text-white' : 'bg-orange/15 text-orange font-bold'
-                )}>
-                  {topic.category}
-                </span>
+                <IconComponent className={cn('w-4 h-4', isSelected ? 'text-white' : 'text-gray-500')} />
+                <span>{topic.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Hero Call Stage Container */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Center Stage Avatar & Status Container */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
 
           {/* Live Error Notification */}
           {liveError && (
-            <div className="absolute top-4 inset-x-4 max-w-md mx-auto bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-2xl text-xs flex justify-between items-center backdrop-blur-md shadow-lg z-30 animate-fadeIn">
+            <div className="absolute top-4 inset-x-4 max-w-md mx-auto bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-2xl text-xs flex justify-between items-center shadow-md z-30 animate-fadeIn">
               <span>⚠️ {liveError}</span>
               <button onClick={() => setLiveError(null)} className="font-bold underline ml-2">Dismiss</button>
             </div>
           )}
 
-          {/* Main AI Avatar Stage with Animated Sound Rings */}
-          <div className="relative flex items-center justify-center my-auto">
-            {/* Outer Animated Ring 1 */}
-            <motion.div
-              animate={
-                liveStatus === 'speaking'
-                  ? { scale: [1, 1.4, 1], opacity: [0.35, 0.75, 0.35] }
-                  : liveStatus === 'listening'
-                  ? { scale: [1, 1.25, 1], opacity: [0.25, 0.55, 0.25] }
-                  : { scale: 1, opacity: 0.15 }
-              }
-              transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-              className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-orange-500/30 via-amber-400/20 to-orange-400/30 blur-xl pointer-events-none"
-            />
+          {/* Arched Capsule Border Outer Container */}
+          <div className={cn(
+            "w-64 h-72 rounded-t-full rounded-b-[60px] flex flex-col items-center justify-center p-6 bg-white relative transition-all duration-300",
+            isCallActive ? "border-2 border-[#7CBD00]/40 shadow-sm" : "border border-gray-150"
+          )}>
 
-            {/* Middle Glowing Ring 2 */}
-            <motion.div
-              animate={
-                liveStatus === 'speaking'
-                  ? { scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }
-                  : liveStatus === 'listening'
-                  ? { scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }
-                  : { scale: 1, opacity: 0.2 }
-              }
-              transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut', delay: 0.2 }}
-              className="absolute w-48 h-48 md:w-60 md:h-60 rounded-full bg-gradient-to-br from-orange-500/40 to-amber-400/40 blur-lg pointer-events-none"
-            />
+            {/* Concentric Rings Surround */}
+            <div className="relative flex items-center justify-center mb-6">
+              {/* Outer Ring 2 */}
+              <div className={cn(
+                "w-48 h-48 rounded-full absolute transition-all",
+                isCallActive ? "border-2 border-[#7CBD00]/30 animate-pulse" : "border border-gray-150"
+              )} />
 
-            {/* Central Glassmorphic Avatar Circle */}
-            <motion.div
-              animate={
-                liveStatus === 'speaking' || liveStatus === 'listening'
-                  ? { scale: [1, 1.05, 1] }
-                  : { scale: 1 }
-              }
-              transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              className="relative w-36 h-36 md:w-44 md:h-44 rounded-full bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 p-1 shadow-[0_15px_40px_rgba(252,74,1,0.35)] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-              onClick={toggleLiveCall}
-            >
-              <div className="w-full h-full rounded-full bg-white dark:bg-card/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center border border-white/60 dark:border-border/60">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-lg mb-1">
-                  <Sparkles className="w-8 h-8 animate-pulse" />
-                </div>
-                <span className="font-extrabold text-sm text-foreground tracking-tight">Maraki AI</span>
-                <span className="text-[10px] font-semibold text-orange uppercase tracking-widest">
-                  Live Coach
-                </span>
+              {/* Outer Ring 1 */}
+              <div className={cn(
+                "w-36 h-36 rounded-full absolute transition-all",
+                isCallActive ? "border-2 border-[#7CBD00]/60" : "border border-gray-200"
+              )} />
+
+              {/* Center Logo Circle */}
+              <div className={cn(
+                "w-24 h-24 rounded-full bg-white flex items-center justify-center z-10 shadow-xs transition-all",
+                isCallActive ? "border-2 border-[#7CBD00]" : "border border-gray-200"
+              )}>
+                <MALogo className="w-12 h-12" />
               </div>
-            </motion.div>
+            </div>
+
+            {/* Avatar Title & Subtitle */}
+            <h3 className="font-extrabold text-xl text-gray-900 tracking-tight leading-none mb-1">Maraki AI</h3>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LIVE COACH</span>
           </div>
 
-          {/* Status Display Header & Timer */}
-          <div className="text-center space-y-2 mt-6 mb-4 z-10">
-            <h2 className="text-xl md:text-2xl font-extrabold text-foreground tracking-tight">
-              {getStatusText()}
-            </h2>
+          {/* Status Display Text */}
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight mt-6 mb-3 text-center">
+            {getStatusText()}
+          </h2>
 
-            {/* Floating Particles for 'Connecting' State */}
-            {liveStatus === 'connecting' && (
-              <div className="flex items-center justify-center gap-1.5 py-1">
-                <span className="w-2 h-2 rounded-full bg-orange animate-ping" />
-                <span className="w-2 h-2 rounded-full bg-orange animate-ping [animation-delay:0.2s]" />
-                <span className="w-2 h-2 rounded-full bg-orange animate-ping [animation-delay:0.4s]" />
-              </div>
-            )}
+          {/* Live Call Duration Timer */}
+          {isCallActive && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#7CBD00]/10 text-[#7CBD00] font-mono text-xs font-bold mb-2">
+              <span>{formatTimer(callDuration)}</span>
+            </div>
+          )}
 
-            {/* Live Call Duration Timer */}
-            {isCallActive && (
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-orange/10 border border-orange/20 text-orange font-mono text-xs font-bold shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {formatTimer(callDuration)}
-              </div>
-            )}
-          </div>
-
-          {/* Real-Time Frequency Waveform Visualizer */}
-          <div className="w-full max-w-sm h-12 flex items-center justify-center gap-1.5 px-4 my-2">
-            {Array.from({ length: 18 }).map((_, i) => {
-              const isAnimating = liveStatus === 'speaking' || liveStatus === 'listening';
-              return (
+          {/* Dynamic Equalizer Waveform Indicator */}
+          <div className="h-8 flex items-center justify-center gap-1 px-4 mt-1">
+            {isCallActive ? (
+              Array.from({ length: 12 }).map((_, i) => (
                 <motion.span
                   key={i}
                   animate={
-                    isAnimating
-                      ? { height: ['8px', `${Math.floor(Math.random() * 32) + 10}px`, '8px'] }
-                      : { height: '6px' }
+                    liveStatus === 'speaking' || liveStatus === 'listening'
+                      ? { height: ['8px', `${Math.floor(Math.random() * 24) + 8}px`, '8px'] }
+                      : { height: '8px' }
                   }
                   transition={{
-                    repeat: isAnimating ? Infinity : 0,
-                    duration: 0.4 + (i % 5) * 0.1,
+                    repeat: Infinity,
+                    duration: 0.4 + (i % 4) * 0.1,
                     ease: 'easeInOut',
                   }}
-                  className={cn(
-                    'w-1.5 rounded-full transition-all',
-                    isAnimating
-                      ? i % 2 === 0
-                        ? 'bg-orange'
-                        : 'bg-amber-400'
-                      : 'bg-muted-foreground/30'
-                  )}
+                  className="w-1.5 rounded-full bg-[#7CBD00]"
                 />
-              );
-            })}
+              ))
+            ) : (
+              // Idle state faint green dots
+              Array.from({ length: 10 }).map((_, i) => (
+                <span key={i} className="w-2 h-2 rounded-full bg-[#7CBD00]/30" />
+              ))
+            )}
           </div>
+
         </div>
 
         {/* Sliding Transcript Drawer Sheet */}
@@ -535,16 +531,16 @@ export default function VoiceChatPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="absolute inset-x-0 bottom-24 top-20 bg-card/95 backdrop-blur-2xl border-t border-border z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
+              className="absolute inset-x-0 bottom-24 top-20 bg-white border-t border-gray-200 z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/40">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-orange" />
-                  <h3 className="font-bold text-sm text-foreground">Live Transcript History</h3>
+                  <FileText className="w-5 h-5 text-[#7CBD00]" />
+                  <h3 className="font-bold text-sm text-gray-900">Live Transcript History</h3>
                 </div>
                 <button
                   onClick={() => setIsTranscriptOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-900"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -562,110 +558,102 @@ export default function VoiceChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Floating Call Control Panel */}
+        {/* Bottom Call Control Panel (Floating Glass Panel) */}
         <div className="p-4 md:p-6 shrink-0 z-40">
-          <div className="max-w-md mx-auto bg-white/80 dark:bg-card/80 backdrop-blur-2xl border border-white/60 dark:border-border/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[36px] p-3 flex items-center justify-around">
+          <div className="max-w-xl mx-auto bg-white border border-gray-200 shadow-xl rounded-full px-6 md:px-8 py-3 flex items-center justify-between">
 
-            {/* Mute Button */}
+            {/* 1. Mute Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95',
+                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
                   isMuted
-                    ? 'bg-red-500/10 text-red-500 border border-red-500/30'
-                    : 'bg-muted/60 text-foreground hover:bg-muted border border-border'
+                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs'
+                    : 'border-gray-200 bg-white text-black hover:border-[#FC4A01]/60'
                 )}
                 aria-label="Mute microphone"
               >
-                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-black stroke-[2.2]" />}
               </button>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                {isMuted ? 'Muted' : 'Mute'}
-              </span>
+              <span className="text-[11px] font-semibold text-gray-700">Mute</span>
             </div>
 
-            {/* Speaker Button */}
+            {/* 2. Speaker Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => setIsSpeakerOn(!isSpeakerOn)}
                 className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95',
-                  !isSpeakerOn
-                    ? 'bg-muted text-muted-foreground border border-border'
-                    : 'bg-orange/10 text-orange border border-orange/30'
+                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
+                  isSpeakerOn
+                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs'
+                    : 'border-gray-200 bg-white text-black'
                 )}
                 aria-label="Toggle speaker"
               >
-                {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                {isSpeakerOn ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-black stroke-[2.2]" />}
               </button>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                Speaker
-              </span>
+              <span className="text-[11px] font-semibold text-gray-700">Speaker</span>
             </div>
 
-            {/* Center Stage Glowing Orange Signature Microphone Call Button */}
+            {/* 3. Center Primary Button (Speak / Stop) */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={toggleLiveCall}
                 className={cn(
-                  'w-16 h-16 rounded-full text-white flex items-center justify-center shadow-xl active:scale-95 transition-all relative group',
+                  'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-md transition-all active:scale-95 hover:scale-105',
                   isCallActive
-                    ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 shadow-[0_10px_30px_rgba(252,74,1,0.5)] animate-pulse'
-                    : 'bg-gradient-to-tr from-orange-600 to-orange-500 shadow-lg shadow-orange/30 hover:scale-105'
+                    ? 'bg-[#FC4A01] hover:bg-[#E64200] shadow-[#FC4A01]/40 animate-pulse'
+                    : 'bg-black hover:bg-gray-800 shadow-gray-900/20'
                 )}
-                aria-label="Start or end voice call"
+                aria-label="Start or stop call"
               >
-                <Mic className="w-7 h-7 stroke-[2.2]" />
+                {isCallActive ? <PhoneOff className="w-6 h-6 text-white stroke-[2.2]" /> : <Mic className="w-6 h-6 text-white stroke-[2.2]" />}
               </button>
-              <span className="text-[11px] font-bold text-orange">
-                {isCallActive ? 'Live' : 'Speak'}
+              <span className={cn('text-[11px] font-bold', isCallActive ? 'text-[#FC4A01]' : 'text-black')}>
+                {isCallActive ? 'Stop' : 'Speak'}
               </span>
             </div>
 
-            {/* Transcript Sheet Button */}
+            {/* 4. Text (Transcript) Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
                 className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95',
+                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
                   isTranscriptOpen
-                    ? 'bg-orange text-white shadow-md shadow-orange/25'
-                    : 'bg-muted/60 text-foreground hover:bg-muted border border-border'
+                    ? 'bg-[#FC4A01] text-white border-[#FC4A01]'
+                    : 'border-gray-200 bg-white text-black hover:border-[#FC4A01]/60'
                 )}
                 aria-label="Toggle transcript"
               >
-                {isTranscriptOpen ? <ChevronUp className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                {isTranscriptOpen ? <ChevronUp className="w-5 h-5 text-white" /> : <FileText className="w-5 h-5 text-black stroke-[2.2]" />}
               </button>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                Text
-              </span>
+              <span className="text-[11px] font-semibold text-gray-700">Text</span>
             </div>
 
-            {/* Circular End Call Button */}
+            {/* 5. End Call Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={toggleLiveCall}
                 disabled={!isCallActive}
                 className={cn(
-                  'w-12 h-12 rounded-full text-white flex items-center justify-center transition-all shadow-md active:scale-95',
+                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
                   isCallActive
-                    ? 'bg-neutral-800 hover:bg-neutral-900 shadow-neutral-800/30 cursor-pointer'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs cursor-pointer'
+                    : 'border-gray-200 bg-white text-black opacity-60 cursor-not-allowed'
                 )}
                 aria-label="End conversation"
               >
-                <PhoneOff className="w-5 h-5" />
+                <PhoneOff className={cn('w-5 h-5', isCallActive ? 'text-white' : 'text-black stroke-[2.2]')} />
               </button>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                End
-              </span>
+              <span className="text-[11px] font-semibold text-gray-700">End</span>
             </div>
 
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
   );
 }
