@@ -298,33 +298,9 @@ export default function VoiceChatPage() {
 
       setTimeout(() => scrollToBottom(), 100);
     } catch (err: any) {
-      console.warn('Backend Gemini Flash Lite text completion fallback:', err);
-      let fallbackText = `That's great! Tell me more about "${userText.slice(0, 35)}" in English!`;
-      const lower = userText.toLowerCase();
-      if (lower.includes('who are you')) {
-        fallbackText = "I'm Maraki AI, your friendly AI English Coach! I'm here to help you practice speaking and writing in English naturally.";
-      } else if (lower.includes('love')) {
-        fallbackText = "Love is a wonderful topic! In English, we express feelings using phrases like 'I cherish our connection' or 'Love brings people together'. What are your thoughts on love?";
-      }
-
-      const aiReplyMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        originalText: fallbackText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setThreads(prevThreads => prevThreads.map(t => {
-        if (t.id === activeThreadId) {
-          return {
-            ...t,
-            messages: [...t.messages, aiReplyMsg]
-          };
-        }
-        return t;
-      }));
-
-      setTimeout(() => scrollToBottom(), 100);
+      console.error('Gemini API Error:', err);
+      const errMsg = err?.response?.data?.message || err?.message || 'Gemini API free-tier quota is currently exhausted. Please try again in 15 seconds.';
+      setLiveError(errMsg);
     }
   };
 
