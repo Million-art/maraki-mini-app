@@ -11,17 +11,22 @@ import {
   PhoneOff,
   Mic,
   MicOff,
-  FileText,
-  Briefcase,
   MessageCircle,
   Plane,
   Heart,
   Users,
   ChevronUp,
   Menu,
+  CheckCircle2,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
+
+import connectedMascot from '../../assets/connected.png';
+import listeningMascot from '../../assets/listening.png';
+import speakingMascot from '../../assets/speaking.png';
+import thinkingMascot from '../../assets/thinking.png';
 
 declare global {
   interface Window {
@@ -62,11 +67,10 @@ function MALogo({ className = "w-10 h-10" }: { className?: string }) {
 }
 
 const TOPICS = [
-  { label: 'Job Interview', category: 'Career', icon: Briefcase, prompt: 'Tell me about yourself and your professional strengths.' },
   { label: 'Career', category: 'General', icon: MessageCircle, prompt: 'What are your career goals for the future?' },
   { label: 'Travel & Flying', category: 'Travel', icon: Plane, prompt: 'Where is your dream travel destination and why?' },
   { label: 'Dating', category: 'Lifestyle', icon: Heart, prompt: 'What traits do you look for in a partner?' },
-  { label: 'Social Skills', category: 'Social', icon: Users, prompt: 'How do you easily start a conversation with a new friend?' },
+  { label: 'Social', category: 'Social', icon: Users, prompt: 'How do you easily start a conversation with a new friend?' },
 ];
 
 export default function VoiceChatPage() {
@@ -93,7 +97,7 @@ export default function VoiceChatPage() {
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome to Maraki AI Live Voice Coach! Tap 'Speak' to talk directly with your AI tutor.",
+          originalText: "👋 Welcome to Maraki AI Live Voice Coach! Tap the green mic button to start speaking.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -112,7 +116,7 @@ export default function VoiceChatPage() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState<string>('Job Interview');
+  const [selectedTopic, setSelectedTopic] = useState<string>('Dating');
 
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
@@ -251,7 +255,7 @@ export default function VoiceChatPage() {
         {
           id: '1',
           sender: 'ai',
-          originalText: "👋 Welcome to a new live call session! Tap 'Speak' to talk.",
+          originalText: "👋 Welcome to a new live call session! Tap the mic button to speak.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       ]
@@ -276,20 +280,32 @@ export default function VoiceChatPage() {
 
   const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
 
-  const getStatusText = () => {
+  // Get current mascot image based on live state
+  const getMascotAsset = () => {
     switch (liveStatus) {
       case 'connecting':
-        return 'Connecting...';
+        return thinkingMascot;
       case 'listening':
-        return "I'm listening...";
+        return listeningMascot;
       case 'speaking':
-        return 'Maraki AI is speaking...';
+        return speakingMascot;
       case 'connected':
-        return 'Connected';
-      case 'error':
-        return 'Connection Error';
       default:
-        return 'Tap to start speaking';
+        return connectedMascot;
+    }
+  };
+
+  const getStatusTitle = () => {
+    switch (liveStatus) {
+      case 'connecting':
+        return 'Thinking...';
+      case 'listening':
+        return 'Listening...';
+      case 'speaking':
+        return 'Speaking...';
+      case 'connected':
+      default:
+        return 'Connected';
     }
   };
 
@@ -372,7 +388,7 @@ export default function VoiceChatPage() {
 
               <div className="p-4 border-t border-gray-100 text-center">
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
-                  Maraki AI Live v3.2
+                  Maraki AI Live v3.5
                 </p>
               </div>
             </motion.aside>
@@ -384,7 +400,7 @@ export default function VoiceChatPage() {
       <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white">
 
         {/* Top Header Bar */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 shrink-0">
+        <header className="px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -404,7 +420,7 @@ export default function VoiceChatPage() {
         </header>
 
         {/* Suggested Topics Pill Carousel */}
-        <div className="px-4 py-3 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 justify-center border-b border-gray-50">
+        <div className="px-4 py-3 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 justify-center">
           {TOPICS.map((topic, idx) => {
             const IconComponent = topic.icon;
             const isSelected = selectedTopic === topic.label;
@@ -420,8 +436,8 @@ export default function VoiceChatPage() {
                 className={cn(
                   'whitespace-nowrap px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-2xs active:scale-95',
                   isSelected
-                    ? 'bg-[#FC4A01] border-[#FC4A01] text-white shadow-sm shadow-[#FC4A01]/25'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-[#FC4A01]/60'
+                    ? 'bg-[#FF5500] border-[#FF5500] text-white shadow-sm shadow-[#FF5500]/25'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
                 )}
               >
                 <IconComponent className={cn('w-4 h-4', isSelected ? 'text-white' : 'text-gray-500')} />
@@ -431,7 +447,7 @@ export default function VoiceChatPage() {
           })}
         </div>
 
-        {/* Center Stage Avatar & Status Container */}
+        {/* Center Stage Mascot Avatar & Status Stage */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
 
           {/* Live Error Notification */}
@@ -442,77 +458,100 @@ export default function VoiceChatPage() {
             </div>
           )}
 
-          {/* Arched Capsule Border Outer Container */}
-          <div className={cn(
-            "w-64 h-72 rounded-t-full rounded-b-[60px] flex flex-col items-center justify-center p-6 bg-white relative transition-all duration-300",
-            isCallActive ? "border-2 border-[#7CBD00]/40 shadow-sm" : "border border-gray-150"
-          )}>
+          {/* Mascot Stage Art Container */}
+          <div className="relative flex items-center justify-center w-72 h-72 md:w-80 md:h-80 my-auto">
 
-            {/* Concentric Rings Surround */}
-            <div className="relative flex items-center justify-center mb-6">
-              {/* Outer Ring 2 */}
-              <div className={cn(
-                "w-48 h-48 rounded-full absolute transition-all",
-                isCallActive ? "border-2 border-[#7CBD00]/30 animate-pulse" : "border border-gray-150"
-              )} />
+            {/* Speaking Background Wave Effect */}
+            {liveStatus === 'speaking' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.95, 1.15, 0.95] }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#22C55E]/20 via-[#10B981]/30 to-[#22C55E]/20 blur-2xl pointer-events-none"
+              />
+            )}
 
-              {/* Outer Ring 1 */}
-              <div className={cn(
-                "w-36 h-36 rounded-full absolute transition-all",
-                isCallActive ? "border-2 border-[#7CBD00]/60" : "border border-gray-200"
-              )} />
+            {/* Listening Background Glow Effect */}
+            {liveStatus === 'listening' && (
+              <motion.div
+                animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.95, 1.1, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                className="absolute inset-0 rounded-full bg-[#7CBD00]/25 blur-2xl pointer-events-none"
+              />
+            )}
 
-              {/* Center Logo Circle */}
-              <div className={cn(
-                "w-24 h-24 rounded-full bg-white flex items-center justify-center z-10 shadow-xs transition-all",
-                isCallActive ? "border-2 border-[#7CBD00]" : "border border-gray-200"
-              )}>
-                <MALogo className="w-12 h-12" />
-              </div>
-            </div>
+            {/* Connected State Background Circle */}
+            {(!isCallActive || liveStatus === 'connected') && (
+              <div className="absolute w-64 h-64 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
+            )}
 
-            {/* Avatar Title & Subtitle */}
-            <h3 className="font-extrabold text-xl text-gray-900 tracking-tight leading-none mb-1">Maraki AI</h3>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LIVE COACH</span>
+            {/* Main Mascot Image */}
+            <motion.div
+              key={liveStatus}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center"
+            >
+              <img
+                src={getMascotAsset()}
+                alt="Maraki AI Mascot"
+                className="w-full h-full object-contain drop-shadow-xl select-none"
+              />
+
+              {/* Connected State Green Checkmark Badge */}
+              {(!isCallActive || liveStatus === 'connected') && (
+                <div className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
+                  <CheckCircle2 className="w-6 h-6 fill-current text-white stroke-[2.5]" />
+                </div>
+              )}
+            </motion.div>
           </div>
 
           {/* Status Display Text */}
-          <h2 className="text-xl font-bold text-gray-900 tracking-tight mt-6 mb-3 text-center">
-            {getStatusText()}
-          </h2>
+          <div className="text-center space-y-1 mt-4 mb-2">
+            <h2 className="text-xl font-extrabold text-[#22C55E] tracking-tight">
+              {getStatusTitle()}
+            </h2>
+            {(!isCallActive || liveStatus === 'connected') && (
+              <p className="text-xs text-gray-500 font-semibold">Maraki AI is ready to talk with you</p>
+            )}
+          </div>
 
-          {/* Live Call Duration Timer */}
-          {isCallActive && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#7CBD00]/10 text-[#7CBD00] font-mono text-xs font-bold mb-2">
-              <span>{formatTimer(callDuration)}</span>
-            </div>
-          )}
-
-          {/* Dynamic Equalizer Waveform Indicator */}
-          <div className="h-8 flex items-center justify-center gap-1 px-4 mt-1">
-            {isCallActive ? (
-              Array.from({ length: 12 }).map((_, i) => (
+          {/* Equalizer Visualizer per Status */}
+          <div className="h-6 flex items-center justify-center gap-1 my-1">
+            {liveStatus === 'connecting' ? (
+              // Thinking State 3 Pulsing Green Dots
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] animate-bounce" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] animate-bounce [animation-delay:0.15s]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] animate-bounce [animation-delay:0.3s]" />
+              </div>
+            ) : liveStatus === 'speaking' || liveStatus === 'listening' ? (
+              // Live Speaking / Listening Bouncing Waveform
+              Array.from({ length: 14 }).map((_, i) => (
                 <motion.span
                   key={i}
-                  animate={
-                    liveStatus === 'speaking' || liveStatus === 'listening'
-                      ? { height: ['8px', `${Math.floor(Math.random() * 24) + 8}px`, '8px'] }
-                      : { height: '8px' }
-                  }
+                  animate={{ height: ['6px', `${Math.floor(Math.random() * 22) + 8}px`, '6px'] }}
                   transition={{
                     repeat: Infinity,
                     duration: 0.4 + (i % 4) * 0.1,
                     ease: 'easeInOut',
                   }}
-                  className="w-1.5 rounded-full bg-[#7CBD00]"
+                  className="w-1.5 rounded-full bg-[#22C55E]"
                 />
               ))
             ) : (
-              // Idle state faint green dots
-              Array.from({ length: 10 }).map((_, i) => (
-                <span key={i} className="w-2 h-2 rounded-full bg-[#7CBD00]/30" />
+              // Connected Idle static green dots
+              Array.from({ length: 12 }).map((_, i) => (
+                <span key={i} className="w-2 h-2 rounded-full bg-[#22C55E]/40" />
               ))
             )}
+          </div>
+
+          {/* Live Call Duration Timer */}
+          <div className="text-gray-400 font-mono text-xs font-bold tracking-wider mt-1">
+            {formatTimer(callDuration)}
           </div>
 
         </div>
@@ -529,7 +568,7 @@ export default function VoiceChatPage() {
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#7CBD00]" />
+                  <MessageSquare className="w-5 h-5 text-[#22C55E]" />
                   <h3 className="font-bold text-sm text-gray-900">Live Transcript History</h3>
                 </div>
                 <button
@@ -554,23 +593,23 @@ export default function VoiceChatPage() {
 
         {/* Bottom Call Control Panel (Floating Glass Panel) */}
         <div className="p-4 md:p-6 shrink-0 z-40">
-          <div className="max-w-xl mx-auto bg-white border border-gray-200 shadow-xl rounded-full px-6 md:px-8 py-3 flex items-center justify-between">
+          <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
 
             {/* 1. Mute Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all border',
                   isMuted
-                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs'
-                    : 'border-gray-200 bg-white text-black hover:border-[#FC4A01]/60'
+                    ? 'border-red-500/40 bg-red-50 text-red-500'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 )}
                 aria-label="Mute microphone"
               >
-                {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-black stroke-[2.2]" />}
+                {isMuted ? <Mic className="w-5 h-5 text-red-500" /> : <MicOff className="w-5 h-5 text-gray-700 stroke-[2.2]" />}
               </button>
-              <span className="text-[11px] font-semibold text-gray-700">Mute</span>
+              <span className="text-[11px] font-semibold text-gray-500">Mute</span>
             </div>
 
             {/* 2. Speaker Button */}
@@ -578,35 +617,30 @@ export default function VoiceChatPage() {
               <button
                 onClick={() => setIsSpeakerOn(!isSpeakerOn)}
                 className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
-                  isSpeakerOn
-                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs'
-                    : 'border-gray-200 bg-white text-black'
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white',
+                  isSpeakerOn ? 'text-[#FF5500]' : 'text-gray-400'
                 )}
                 aria-label="Toggle speaker"
               >
-                {isSpeakerOn ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-black stroke-[2.2]" />}
+                {isSpeakerOn ? <Volume2 className="w-5 h-5 text-[#FF5500]" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
               </button>
-              <span className="text-[11px] font-semibold text-gray-700">Speaker</span>
+              <span className="text-[11px] font-semibold text-gray-500">Speaker</span>
             </div>
 
-            {/* 3. Center Primary Button (Speak / Stop) */}
+            {/* 3. Center Mic Call Button */}
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={toggleLiveCall}
                 className={cn(
-                  'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-md transition-all active:scale-95 hover:scale-105',
+                  'w-16 h-16 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 border-emerald-100 ring-2 ring-emerald-500/20',
                   isCallActive
-                    ? 'bg-[#FC4A01] hover:bg-[#E64200] shadow-[#FC4A01]/40 animate-pulse'
-                    : 'bg-black hover:bg-gray-800 shadow-gray-900/20'
+                    ? 'bg-[#16A34A] shadow-green-600/30 animate-pulse'
+                    : 'bg-[#16A34A] shadow-green-600/30'
                 )}
-                aria-label="Start or stop call"
+                aria-label="Start or end voice call"
               >
-                {isCallActive ? <PhoneOff className="w-6 h-6 text-white stroke-[2.2]" /> : <Mic className="w-6 h-6 text-white stroke-[2.2]" />}
+                <Mic className="w-7 h-7 text-white stroke-[2.5]" />
               </button>
-              <span className={cn('text-[11px] font-bold', isCallActive ? 'text-[#FC4A01]' : 'text-black')}>
-                {isCallActive ? 'Stop' : 'Speak'}
-              </span>
             </div>
 
             {/* 4. Text (Transcript) Button */}
@@ -614,16 +648,14 @@ export default function VoiceChatPage() {
               <button
                 onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
                 className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
-                  isTranscriptOpen
-                    ? 'bg-[#FC4A01] text-white border-[#FC4A01]'
-                    : 'border-gray-200 bg-white text-black hover:border-[#FC4A01]/60'
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white text-gray-700',
+                  isTranscriptOpen && 'border-[#16A34A] text-[#16A34A]'
                 )}
                 aria-label="Toggle transcript"
               >
-                {isTranscriptOpen ? <ChevronUp className="w-5 h-5 text-white" /> : <FileText className="w-5 h-5 text-black stroke-[2.2]" />}
+                {isTranscriptOpen ? <ChevronUp className="w-5 h-5 text-[#16A34A]" /> : <MessageSquare className="w-5 h-5 text-gray-700 stroke-[2.2]" />}
               </button>
-              <span className="text-[11px] font-semibold text-gray-700">Text</span>
+              <span className="text-[11px] font-semibold text-gray-500">Text</span>
             </div>
 
             {/* 5. End Call Button */}
@@ -632,16 +664,16 @@ export default function VoiceChatPage() {
                 onClick={toggleLiveCall}
                 disabled={!isCallActive}
                 className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95',
                   isCallActive
-                    ? 'border-[#FC4A01] bg-[#FC4A01] text-white shadow-xs cursor-pointer'
-                    : 'border-gray-200 bg-white text-black opacity-60 cursor-not-allowed'
+                    ? 'bg-[#FF3B30] text-white shadow-red-500/25 hover:bg-[#E03126] cursor-pointer'
+                    : 'bg-[#FF3B30]/60 text-white cursor-not-allowed opacity-60'
                 )}
                 aria-label="End conversation"
               >
-                <PhoneOff className={cn('w-5 h-5', isCallActive ? 'text-white' : 'text-black stroke-[2.2]')} />
+                <PhoneOff className="w-5 h-5 text-white" />
               </button>
-              <span className="text-[11px] font-semibold text-gray-700">End</span>
+              <span className="text-[11px] font-semibold text-gray-500">End</span>
             </div>
 
           </div>
