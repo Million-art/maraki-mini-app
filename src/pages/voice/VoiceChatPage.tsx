@@ -592,7 +592,7 @@ export default function VoiceChatPage() {
         </AnimatePresence>
 
         {/* Bottom Call Control Panel (Floating Glass Panel) */}
-        <div className="p-4 md:p-6 shrink-0 z-40">
+        <div className="px-4 pt-2 pb-8 md:pb-8 shrink-0 z-40 mb-2">
           <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
 
             {/* 1. Mute Button */}
