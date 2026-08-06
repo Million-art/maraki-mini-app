@@ -17,9 +17,6 @@ import {
   CheckCircle2,
   MessageSquare,
   Send,
-  Camera,
-  CameraOff,
-  Monitor,
   Settings,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -132,16 +129,11 @@ export default function VoiceChatPage() {
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
-  // Audio & Video Controls
+  // Audio Controls & Devices
   const [isMuted, setIsMuted] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-
-  // Device Enumeration
+  // Audio Controls & Devices
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicId, setSelectedMicId] = useState<string>('');
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
 
   // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<
@@ -151,18 +143,16 @@ export default function VoiceChatPage() {
   const [callDuration, setCallDuration] = useState<number>(0);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
   const durationTimerRef = useRef<any>(null);
-  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { playText: speakText, stopAudio, playingMessageId, connect } = useGeminiLive();
 
-  // Load available microphones and cameras
+  // Load available microphones
   useEffect(() => {
     async function loadDevices() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         setAudioDevices(devices.filter((d) => d.kind === 'audioinput'));
-        setVideoDevices(devices.filter((d) => d.kind === 'videoinput'));
       } catch (err) {
         console.error('Failed to enumerate media devices:', err);
       }
@@ -239,9 +229,6 @@ export default function VoiceChatPage() {
     if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
-      setIsCameraOn(false);
-      setIsScreenSharing(false);
-      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
       return;
     }
 
@@ -284,61 +271,6 @@ export default function VoiceChatPage() {
     service.startSession(selectedMicId || undefined);
   };
 
-  const toggleCamera = async () => {
-    if (!liveServiceRef.current || liveStatus === 'disconnected') {
-      setLiveError('Please start a Gemini Live call first');
-      return;
-    }
-
-    if (!isCameraOn) {
-      try {
-        const video = await liveServiceRef.current.startCamera({
-          fps: 1,
-          width: 640,
-          height: 480,
-          deviceId: selectedCameraId || undefined,
-        });
-        if (video && videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = video.srcObject;
-        }
-        setIsCameraOn(true);
-      } catch (err: any) {
-        setLiveError('Failed to start camera: ' + (err?.message || err));
-      }
-    } else {
-      liveServiceRef.current.stopCamera();
-      if (!isScreenSharing && videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = null;
-      }
-      setIsCameraOn(false);
-    }
-  };
-
-  const toggleScreenShare = async () => {
-    if (!liveServiceRef.current || liveStatus === 'disconnected') {
-      setLiveError('Please start a Gemini Live call first');
-      return;
-    }
-
-    if (!isScreenSharing) {
-      try {
-        const video = await liveServiceRef.current.startScreenShare({ fps: 0.5 });
-        if (video && videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = video.srcObject;
-        }
-        setIsScreenSharing(true);
-      } catch (err: any) {
-        setLiveError('Failed to start screen share: ' + (err?.message || err));
-      }
-    } else {
-      liveServiceRef.current.stopScreenShare();
-      if (!isCameraOn && videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = null;
-      }
-      setIsScreenSharing(false);
-    }
-  };
-
   const handleSendTextMessage = async () => {
     if (!textInputValue.trim()) return;
 
@@ -368,6 +300,12 @@ export default function VoiceChatPage() {
 
     setIsAiTyping(true);
     setTimeout(() => scrollToBottom(), 50);
+
+    if (liveServiceRef.current && isCallActive) {
+      liveServiceRef.current.sendTextMessage(userText);
+      setIsAiTyping(false);
+      return;
+    }
 
     const aiMsgId = (Date.now() + 1).toString();
     let accumulatedText = '';
@@ -648,22 +586,6 @@ export default function VoiceChatPage() {
                 </select>
               </div>
 
-              {/* Camera Selection */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Camera</label>
-                <select
-                  value={selectedCameraId}
-                  onChange={(e) => setSelectedCameraId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FC4A01] bg-gray-50"
-                >
-                  <option value="">Default Camera</option>
-                  {videoDevices.map((dev) => (
-                    <option key={dev.deviceId} value={dev.deviceId}>
-                      {dev.label || `Camera (${dev.deviceId.slice(0, 8)})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               <div className="pt-2">
                 <button
@@ -751,26 +673,10 @@ export default function VoiceChatPage() {
             </div>
           )}
 
-          {/* Video Preview Overlay (Camera or Screen share) */}
-          <div
-            className={cn(
-              'relative flex items-center justify-center w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 my-auto transition-all',
-              (isCameraOn || isScreenSharing) && 'rounded-3xl overflow-hidden shadow-2xl border-2 border-emerald-500',
-            )}
-          >
-            <video
-              ref={videoPreviewRef}
-              autoPlay
-              playsInline
-              muted
-              className={cn(
-                'absolute inset-0 w-full h-full object-cover z-20 bg-black',
-                !isCameraOn && !isScreenSharing && 'hidden',
-              )}
-            />
-
+          {/* Mascot Stage */}
+          <div className="relative flex items-center justify-center w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 my-auto transition-all">
             {/* Speaking Background Wave Effect */}
-            {liveStatus === 'speaking' && !isCameraOn && !isScreenSharing && (
+            {liveStatus === 'speaking' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.95, 1.15, 0.95] }}
@@ -780,7 +686,7 @@ export default function VoiceChatPage() {
             )}
 
             {/* Listening Background Glow Effect */}
-            {liveStatus === 'listening' && !isCameraOn && !isScreenSharing && (
+            {liveStatus === 'listening' && (
               <motion.div
                 animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.95, 1.1, 0.95] }}
                 transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
@@ -789,33 +695,31 @@ export default function VoiceChatPage() {
             )}
 
             {/* Connected State Background Circle */}
-            {(!isCallActive || liveStatus === 'connected') && !isCameraOn && !isScreenSharing && (
+            {(!isCallActive || liveStatus === 'connected') && (
               <div className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
             )}
 
             {/* Main Mascot Image */}
-            {!isCameraOn && !isScreenSharing && (
-              <motion.div
-                key={liveStatus}
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center"
-              >
-                <img
-                  src={getMascotAsset()}
-                  alt="Maraki AI Mascot"
-                  className="w-full h-full object-contain drop-shadow-xl select-none"
-                />
+            <motion.div
+              key={liveStatus}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center"
+            >
+              <img
+                src={getMascotAsset()}
+                alt="Maraki AI Mascot"
+                className="w-full h-full object-contain drop-shadow-xl select-none"
+              />
 
-                {/* Connected State Green Checkmark Badge */}
-                {(!isCallActive || liveStatus === 'connected') && (
-                  <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
-                    <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 fill-current text-white stroke-[2.5]" />
-                  </div>
-                )}
-              </motion.div>
-            )}
+              {/* Connected State Green Checkmark Badge */}
+              {(!isCallActive || liveStatus === 'connected') && (
+                <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
+                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 fill-current text-white stroke-[2.5]" />
+                </div>
+              )}
+            </motion.div>
           </div>
 
           {/* Status Display Text */}
@@ -934,7 +838,7 @@ export default function VoiceChatPage() {
         {/* Bottom Call Control Panel (Only visible in Voice mode) */}
         {!isTranscriptOpen && (
           <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
-            <div className="max-w-lg mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-5 py-3.5 flex items-center justify-between">
+            <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
               {/* 1. Mute Button */}
               <div className="flex flex-col items-center gap-1">
                 <button
@@ -956,20 +860,17 @@ export default function VoiceChatPage() {
                 <span className="text-[10px] font-semibold text-gray-500">Mute</span>
               </div>
 
-              {/* 2. Camera Button */}
+              {/* 2. Text / Chat Mode Toggle Button */}
               <div className="flex flex-col items-center gap-1">
                 <button
-                  onClick={toggleCamera}
-                  className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white',
-                    isCameraOn ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'text-gray-700',
-                  )}
-                  aria-label="Toggle Camera"
-                  title="Toggle Camera video input"
+                  onClick={() => setIsTranscriptOpen(true)}
+                  className="w-11 h-11 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white text-gray-700 hover:border-[#16A34A] hover:text-[#16A34A] active:scale-95"
+                  aria-label="Toggle text mode"
+                  title="Toggle Text Mode"
                 >
-                  {isCameraOn ? <Camera className="w-5 h-5 text-emerald-600" /> : <CameraOff className="w-5 h-5 text-gray-700" />}
+                  <MessageSquare className="w-5 h-5 text-gray-700 stroke-[2.2]" />
                 </button>
-                <span className="text-[10px] font-semibold text-gray-500">Camera</span>
+                <span className="text-[10px] font-semibold text-gray-500">Text</span>
               </div>
 
               {/* 3. Center Call / Start Button */}
@@ -986,23 +887,7 @@ export default function VoiceChatPage() {
                 </button>
               </div>
 
-              {/* 4. Screen Share Button */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  onClick={toggleScreenShare}
-                  className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white',
-                    isScreenSharing ? 'border-blue-500 bg-blue-50 text-blue-600' : 'text-gray-700',
-                  )}
-                  aria-label="Share Screen"
-                  title="Share Screen input"
-                >
-                  <Monitor className="w-5 h-5 text-gray-700" />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-500">Screen</span>
-              </div>
-
-              {/* 5. End Call Button */}
+              {/* 4. End Call Button */}
               <div className="flex flex-col items-center gap-1">
                 <button
                   onClick={toggleLiveCall}
