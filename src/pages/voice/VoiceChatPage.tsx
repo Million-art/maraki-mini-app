@@ -337,7 +337,7 @@ export default function VoiceChatPage() {
               <div className="p-4">
                 <button
                   onClick={handleNewSession}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#7CBD00] text-white font-bold text-sm hover:bg-[#6FA800] active:scale-98 transition-all shadow-md shadow-[#7CBD00]/25"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#FC4A01] text-white font-bold text-sm hover:bg-[#E64200] active:scale-98 transition-all shadow-md shadow-[#FC4A01]/25"
                 >
                   <Plus className="h-4 w-4" /> New Practice Session
                 </button>
@@ -354,7 +354,7 @@ export default function VoiceChatPage() {
                     className={cn(
                       "group flex items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all cursor-pointer border",
                       thread.id === activeThreadId
-                        ? "bg-[#7CBD00]/10 border-[#7CBD00]/30 text-[#7CBD00] shadow-xs"
+                        ? "bg-[#FC4A01]/10 border-[#FC4A01]/30 text-[#FC4A01] shadow-xs"
                         : "border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
@@ -401,12 +401,6 @@ export default function VoiceChatPage() {
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">VOICE COACH</span>
             </div>
           </div>
-
-          {/* Top Right LIVE Pill Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-gray-200 bg-white text-[11px] font-bold text-[#7CBD00] shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-[#7CBD00] animate-pulse" />
-            <span>LIVE</span>
-          </div>
         </header>
 
         {/* Suggested Topics Pill Carousel */}
@@ -426,8 +420,8 @@ export default function VoiceChatPage() {
                 className={cn(
                   'whitespace-nowrap px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-2xs active:scale-95',
                   isSelected
-                    ? 'bg-[#7CBD00] border-[#7CBD00] text-white shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-[#7CBD00]/60'
+                    ? 'bg-[#FC4A01] border-[#FC4A01] text-white shadow-sm shadow-[#FC4A01]/25'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-[#FC4A01]/60'
                 )}
               >
                 <IconComponent className={cn('w-4 h-4', isSelected ? 'text-white' : 'text-gray-500')} />
