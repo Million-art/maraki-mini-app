@@ -132,13 +132,9 @@ export class GeminiLiveService {
       await this.streamer.start();
       this.handlers.onStatusChange?.('listening');
     } catch (err: any) {
-      if (err?.name === 'NotFoundError' || err?.message?.includes('NotFoundError')) {
-        this.handlers.onError?.('No microphone input device was found. Please connect a microphone or headset.');
-      } else if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        this.handlers.onError?.('Microphone permission was denied. Please allow microphone access in your browser settings.');
-      } else {
-        this.handlers.onError?.(err?.message || 'Microphone access denied or unsupported.');
-      }
+      console.warn('Microphone not found or unavailable, continuing in text-only chat mode:', err);
+      // Fall back to connected state so text chat continues seamlessly without requiring a microphone
+      this.handlers.onStatusChange?.('connected');
     }
   }
 
