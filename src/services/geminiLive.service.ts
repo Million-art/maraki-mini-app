@@ -1,6 +1,14 @@
 import { ApiService, API_ENDPOINTS } from '../config/api';
 import { GeminiLiveClient, type LiveResponse, MultimodalLiveResponseType } from '../lib/geminiLiveClient';
-import { AudioStreamer, AudioPlayer } from '../lib/mediaUtils';
+import { defaultGeminiTools } from '../lib/geminiTools';
+import {
+  AudioStreamer,
+  AudioPlayer,
+  VideoStreamer,
+  ScreenCapture,
+  type VideoStreamOptions,
+  type ScreenCaptureOptions,
+} from '../lib/mediaUtils';
 import { UsageQueue } from '../utils/usageQueue.util';
 
 export interface LiveSessionHandlers {
@@ -13,6 +21,8 @@ export class GeminiLiveService {
   private client: GeminiLiveClient | null = null;
   private streamer: AudioStreamer | null = null;
   private player: AudioPlayer | null = null;
+  private videoStreamer: VideoStreamer | null = null;
+  private screenCapture: ScreenCapture | null = null;
   private telegramId: number = 0;
   private sessionStartTime: number = 0;
   private isConnected: boolean = false;
@@ -29,7 +39,7 @@ export class GeminiLiveService {
     });
   }
 
-  async startSession(): Promise<void> {
+  async startSession(micDeviceId?: string): Promise<void> {
     if (this.isConnected) return;
     this.handlers.onStatusChange?.('connecting');
 
@@ -49,14 +59,15 @@ export class GeminiLiveService {
         throw new Error('No valid ephemeral token received from server.');
       }
 
-      // 2. Initialize GeminiLiveClient with message callbacks
+      // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
+        tools: defaultGeminiTools,
         onStatusChange: (status) => {
           if (status === 'connected') {
             this.isConnected = true;
             this.sessionStartTime = Date.now();
             this.handlers.onStatusChange?.('connected');
-            this.startMicStreaming();
+            this.startMicStreaming(micDeviceId);
           } else if (status === 'disconnected') {
             this.handleDisconnect();
           } else if (status === 'error') {
@@ -125,16 +136,51 @@ export class GeminiLiveService {
     }
   }
 
-  private async startMicStreaming(): Promise<void> {
+  public async startMicStreaming(micDeviceId?: string): Promise<void> {
     if (!this.client) return;
     try {
-      this.streamer = new AudioStreamer(this.client);
-      await this.streamer.start();
+      if (!this.streamer) {
+        this.streamer = new AudioStreamer(this.client);
+      }
+      await this.streamer.start(micDeviceId);
       this.handlers.onStatusChange?.('listening');
     } catch (err: any) {
       console.warn('Microphone not found or unavailable, continuing in text-only chat mode:', err);
-      // Fall back to connected state so text chat continues seamlessly without requiring a microphone
       this.handlers.onStatusChange?.('connected');
+    }
+  }
+
+  public async startCamera(options: VideoStreamOptions = {}): Promise<HTMLVideoElement | null> {
+    if (!this.client || !this.client.connected) {
+      throw new Error('Gemini Live session is not connected.');
+    }
+    if (!this.videoStreamer) {
+      this.videoStreamer = new VideoStreamer(this.client);
+    }
+    return await this.videoStreamer.start(options);
+  }
+
+  public stopCamera(): void {
+    if (this.videoStreamer) {
+      this.videoStreamer.stop();
+      this.videoStreamer = null;
+    }
+  }
+
+  public async startScreenShare(options: ScreenCaptureOptions = {}): Promise<HTMLVideoElement | null> {
+    if (!this.client || !this.client.connected) {
+      throw new Error('Gemini Live session is not connected.');
+    }
+    if (!this.screenCapture) {
+      this.screenCapture = new ScreenCapture(this.client);
+    }
+    return await this.screenCapture.start(options);
+  }
+
+  public stopScreenShare(): void {
+    if (this.screenCapture) {
+      this.screenCapture.stop();
+      this.screenCapture = null;
     }
   }
 
@@ -159,6 +205,9 @@ export class GeminiLiveService {
     this.streamer = null;
     this.player?.stop();
     this.player = null;
+
+    this.stopCamera();
+    this.stopScreenShare();
 
     const clientToClose = this.client;
     this.client = null;

@@ -1,8 +1,9 @@
 /**
  * Gemini Live API WebSocket Client for TypeScript / React Vite
- * Supports Ephemeral Tokens, Audio/Video Streaming, and Tool Calls.
- * Based on google-gemini/gemini-live-api-examples
+ * Supports Ephemeral Tokens, Audio/Video Streaming, and Tool Calls (Function Calling).
  */
+
+import { FunctionCallDefinition } from './geminiTools';
 
 export const MultimodalLiveResponseType = {
   TEXT: 'TEXT',
@@ -16,7 +17,7 @@ export const MultimodalLiveResponseType = {
   OUTPUT_TRANSCRIPTION: 'OUTPUT_TRANSCRIPTION',
 } as const;
 
-export type ResponseType = typeof MultimodalLiveResponseType[keyof typeof MultimodalLiveResponseType];
+export type ResponseType = (typeof MultimodalLiveResponseType)[keyof typeof MultimodalLiveResponseType];
 
 export interface LiveResponse {
   type: ResponseType;
@@ -30,15 +31,26 @@ export interface GeminiLiveOptions {
   onError?: (error: string) => void;
   systemInstruction?: string;
   voiceName?: string;
+  tools?: FunctionCallDefinition[];
 }
 
 export class GeminiLiveClient {
   private ws: WebSocket | null = null;
   public connected: boolean = false;
   private options: GeminiLiveOptions;
+  private toolsMap: Map<string, FunctionCallDefinition> = new Map();
 
   constructor(options: GeminiLiveOptions = {}) {
     this.options = options;
+    if (options.tools) {
+      for (const tool of options.tools) {
+        this.toolsMap.set(tool.name, tool);
+      }
+    }
+  }
+
+  public registerTool(tool: FunctionCallDefinition) {
+    this.toolsMap.set(tool.name, tool);
   }
 
   /**
@@ -118,7 +130,9 @@ export class GeminiLiveClient {
   private sendSetupMessage() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
-    const setupMsg = {
+    const functionDeclarations = Array.from(this.toolsMap.values()).map((t) => t.getDeclaration());
+
+    const setupMsg: any = {
       setup: {
         model: 'models/gemini-2.0-flash-exp',
         generationConfig: {
@@ -143,6 +157,10 @@ export class GeminiLiveClient {
       },
     };
 
+    if (functionDeclarations.length > 0) {
+      setupMsg.setup.tools = [{ functionDeclarations }];
+    }
+
     this.ws.send(JSON.stringify(setupMsg));
   }
 
@@ -164,6 +182,26 @@ export class GeminiLiveClient {
     };
 
     this.ws.send(JSON.stringify(pcmMsg));
+  }
+
+  /**
+   * Send image frame or video JPEG chunk to Gemini
+   */
+  public sendImageMessage(base64Image: string, mimeType = 'image/jpeg') {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    const imgMsg = {
+      realtimeInput: {
+        mediaChunks: [
+          {
+            mimeType,
+            data: base64Image,
+          },
+        ],
+      },
+    };
+
+    this.ws.send(JSON.stringify(imgMsg));
   }
 
   /**
@@ -218,6 +256,52 @@ export class GeminiLiveClient {
   }
 
   /**
+   * Handle Tool Call incoming from Gemini Live API
+   */
+  private handleToolCall(toolCall: any) {
+    const functionCalls = toolCall?.functionCalls || [];
+    const functionResponses: Array<{ name: string; response: object; id?: string }> = [];
+
+    for (const fc of functionCalls) {
+      const toolName = fc.name;
+      const callId = fc.id;
+      const args = fc.args || {};
+
+      console.log(`🛠️ Gemini Tool Call requested: ${toolName}`, args);
+
+      const toolInstance = this.toolsMap.get(toolName);
+      if (toolInstance) {
+        try {
+          const result = toolInstance.functionToCall(args);
+          functionResponses.push({
+            id: callId,
+            name: toolName,
+            response: { result: result ?? 'ok' },
+          });
+        } catch (err: any) {
+          console.error(`Error executing tool ${toolName}:`, err);
+          functionResponses.push({
+            id: callId,
+            name: toolName,
+            response: { error: err?.message || 'Tool execution failed' },
+          });
+        }
+      } else {
+        console.warn(`Tool ${toolName} not registered in GeminiLiveClient`);
+        functionResponses.push({
+          id: callId,
+          name: toolName,
+          response: { error: `Tool ${toolName} not found` },
+        });
+      }
+    }
+
+    if (functionResponses.length > 0) {
+      this.sendToolResponse(functionResponses);
+    }
+  }
+
+  /**
    * Close WebSocket connection
    */
   public disconnect() {
@@ -249,6 +333,7 @@ export class GeminiLiveClient {
       }
 
       if (data?.toolCall) {
+        this.handleToolCall(data.toolCall);
         responses.push({ type: MultimodalLiveResponseType.TOOL_CALL, data: data.toolCall, endOfTurn: false });
         return responses;
       }

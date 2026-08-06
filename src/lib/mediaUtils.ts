@@ -1,5 +1,238 @@
 import { GeminiLiveClient } from './geminiLiveClient';
 
+export interface VideoStreamOptions {
+  fps?: number;
+  width?: number;
+  height?: number;
+  facingMode?: 'user' | 'environment';
+  quality?: number;
+  deviceId?: string;
+}
+
+export interface ScreenCaptureOptions {
+  fps?: number;
+  width?: number;
+  height?: number;
+  quality?: number;
+}
+
+/**
+ * Base Video Capture - Shared functionality for video/screen capture
+ */
+export class BaseVideoCapture {
+  protected client: GeminiLiveClient;
+  protected video: HTMLVideoElement | null = null;
+  protected canvas: HTMLCanvasElement | null = null;
+  protected ctx: CanvasRenderingContext2D | null = null;
+  protected mediaStream: MediaStream | null = null;
+  public isStreaming: boolean = false;
+  protected captureInterval: any = null;
+  protected fps: number = 1; // Default 1 frame per second
+  protected quality: number = 0.8; // Default JPEG quality
+
+  constructor(geminiClient: GeminiLiveClient) {
+    this.client = geminiClient;
+  }
+
+  /**
+   * Initialize canvas and video elements
+   */
+  protected initializeElements(width: number, height: number) {
+    this.video = document.createElement('video');
+    this.video.srcObject = this.mediaStream;
+    this.video.autoplay = true;
+    this.video.playsInline = true;
+    this.video.muted = true;
+
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.ctx = this.canvas.getContext('2d');
+  }
+
+  /**
+   * Wait for video metadata to be loaded and start playing
+   */
+  protected async waitForVideoReady(): Promise<void> {
+    if (!this.video) return;
+    await new Promise<void>((resolve) => {
+      if (this.video) {
+        this.video.onloadedmetadata = () => resolve();
+      } else {
+        resolve();
+      }
+    });
+    await this.video.play();
+  }
+
+  /**
+   * Start capturing and sending frames
+   */
+  protected startCapturing() {
+    const captureFrame = () => {
+      if (!this.isStreaming || !this.ctx || !this.video || !this.canvas) return;
+
+      this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+      this.canvas.toBlob(
+        (blob) => {
+          if (!blob) return;
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            const base64 = result?.split(',')[1];
+            if (this.client && this.client.connected && base64) {
+              this.client.sendImageMessage(base64, 'image/jpeg');
+            }
+          };
+          reader.readAsDataURL(blob);
+        },
+        'image/jpeg',
+        this.quality,
+      );
+    };
+
+    this.captureInterval = setInterval(captureFrame, 1000 / this.fps);
+  }
+
+  /**
+   * Stop capturing
+   */
+  public stop() {
+    this.isStreaming = false;
+
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
+    }
+
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream = null;
+    }
+
+    if (this.video) {
+      this.video.srcObject = null;
+      this.video = null;
+    }
+
+    this.canvas = null;
+    this.ctx = null;
+  }
+
+  /**
+   * Take a single snapshot
+   */
+  public takeSnapshot(): string {
+    if (!this.video || !this.canvas || !this.ctx) {
+      throw new Error('Video element not initialized');
+    }
+
+    this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+    return this.canvas.toDataURL('image/jpeg', this.quality);
+  }
+
+  /**
+   * Get the video element for UI preview
+   */
+  public getVideoElement(): HTMLVideoElement | null {
+    return this.video;
+  }
+}
+
+/**
+ * Video Streamer - Captures and streams camera video to Gemini Live
+ */
+export class VideoStreamer extends BaseVideoCapture {
+  public async start(options: VideoStreamOptions = {}): Promise<HTMLVideoElement> {
+    try {
+      const { fps = 1, width = 640, height = 480, facingMode = 'user', quality = 0.8, deviceId = null } = options;
+
+      this.fps = fps;
+      this.quality = quality;
+
+      const videoConstraints: MediaTrackConstraints = {
+        width: { ideal: width },
+        height: { ideal: height },
+      };
+
+      if (deviceId) {
+        videoConstraints.deviceId = { exact: deviceId };
+      } else {
+        videoConstraints.facingMode = facingMode;
+      }
+
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+      });
+
+      this.initializeElements(width, height);
+      await this.waitForVideoReady();
+
+      this.isStreaming = true;
+      this.startCapturing();
+
+      console.log('📹 Camera streaming started at', fps, 'fps');
+      return this.video!;
+    } catch (error) {
+      console.error('Failed to start camera streaming:', error);
+      throw error;
+    }
+  }
+
+  public override stop() {
+    super.stop();
+    console.log('🛑 Camera streaming stopped');
+  }
+}
+
+/**
+ * Screen Capture - Captures and streams screen/window to Gemini Live
+ */
+export class ScreenCapture extends BaseVideoCapture {
+  public async start(options: ScreenCaptureOptions = {}): Promise<HTMLVideoElement> {
+    try {
+      const { fps = 1, width = 1280, height = 720, quality = 0.7 } = options;
+
+      this.fps = fps;
+      this.quality = quality;
+
+      this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          width: { ideal: width },
+          height: { ideal: height },
+        },
+        audio: false,
+      });
+
+      this.initializeElements(width, height);
+      await this.waitForVideoReady();
+
+      this.isStreaming = true;
+      this.startCapturing();
+
+      const videoTrack = this.mediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          console.log('User stopped screen sharing');
+          this.stop();
+        };
+      }
+
+      console.log('🖥️ Screen capture started at', fps, 'fps');
+      return this.video!;
+    } catch (error) {
+      console.error('Failed to start screen capture:', error);
+      throw error;
+    }
+  }
+
+  public override stop() {
+    super.stop();
+    console.log('🛑 Screen capture stopped');
+  }
+}
+
 /**
  * Audio Streamer - Captures microphone audio at 16kHz PCM and streams to Gemini Live Client
  */
@@ -41,21 +274,24 @@ export class AudioStreamer {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         this.audioContext = new AudioCtx({ sampleRate: this.sampleRate });
 
-        await this.audioContext.audioWorklet.addModule('/audio-processors/capture.worklet.js');
+        try {
+          await this.audioContext.audioWorklet.addModule('/audio-processors/capture.worklet.js');
+          this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-capture-processor');
 
-        this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-capture-processor');
-
-        this.audioWorkletNode.port.onmessage = (event) => {
-          if (!this.isStreaming) return;
-          if (event.data.type === 'audio') {
-            const inputData: Float32Array = event.data.data;
-            const pcm16Data = this.convertToPCM16(inputData);
-            const base64Audio = this.arrayBufferToBase64(pcm16Data);
-            if (this.client.connected) {
-              this.client.sendAudioChunk(base64Audio);
+          this.audioWorkletNode.port.onmessage = (event) => {
+            if (!this.isStreaming) return;
+            if (event.data.type === 'audio') {
+              const inputData: Float32Array = event.data.data;
+              const pcm16Data = this.convertToPCM16(inputData);
+              const base64Audio = this.arrayBufferToBase64(pcm16Data);
+              if (this.client.connected) {
+                this.client.sendAudioChunk(base64Audio);
+              }
             }
-          }
-        };
+          };
+        } catch (workletErr) {
+          console.warn('Audio worklet not loaded, using fallback audio capture:', workletErr);
+        }
       }
 
       if (this.audioContext.state === 'suspended') {
@@ -93,6 +329,14 @@ export class AudioStreamer {
     }
   }
 
+  public destroy() {
+    this.stop();
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+  }
+
   private convertToPCM16(float32Array: Float32Array): ArrayBuffer {
     const buffer = new ArrayBuffer(float32Array.length * 2);
     const view = new DataView(buffer);
@@ -115,7 +359,7 @@ export class AudioStreamer {
 }
 
 /**
- * Audio Player - Queue and play 24kHz PCM audio chunks returned from Gemini Live API
+ * Audio Player - Queue and play 24kHz PCM audio responses from Gemini Live API
  */
 export class AudioPlayer {
   private audioContext: AudioContext | null = null;
@@ -123,6 +367,7 @@ export class AudioPlayer {
   private activeSources: AudioBufferSourceNode[] = [];
   private sampleRate: number = 24000;
   private onEndedCallback: (() => void) | null = null;
+  private volume: number = 1.0;
 
   constructor() {
     this.initContext();
@@ -137,6 +382,10 @@ export class AudioPlayer {
 
   public onEnded(callback: () => void) {
     this.onEndedCallback = callback;
+  }
+
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol));
   }
 
   /**
@@ -158,7 +407,15 @@ export class AudioPlayer {
 
     const source = this.audioContext.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
+
+    if (this.volume !== 1.0) {
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = this.volume;
+      source.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+    } else {
+      source.connect(this.audioContext.destination);
+    }
 
     const currentTime = this.audioContext.currentTime;
     if (this.nextStartTime < currentTime) {
@@ -195,6 +452,14 @@ export class AudioPlayer {
     this.activeSources = [];
     if (this.audioContext) {
       this.nextStartTime = this.audioContext.currentTime;
+    }
+  }
+
+  public destroy() {
+    this.stop();
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
     }
   }
 
