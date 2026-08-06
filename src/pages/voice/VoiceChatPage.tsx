@@ -24,7 +24,6 @@ import {
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
-import { ApiService, API_ENDPOINTS } from '../../config/api';
 
 import connectedMascot from '../../assets/connected.png';
 import listeningMascot from '../../assets/listening.png';
@@ -217,6 +216,7 @@ export default function VoiceChatPage() {
       },
       onTranscriptReceived: (sender, text) => {
         if (!text || !text.trim()) return;
+        setIsAiTyping(false);
 
         const newMsg: Message = {
           id: Date.now().toString(),
@@ -234,8 +234,10 @@ export default function VoiceChatPage() {
           }
           return t;
         }));
+        setTimeout(() => scrollToBottom(), 50);
       },
       onError: (err) => {
+        setIsAiTyping(false);
         setLiveError(err);
       },
     });
@@ -244,7 +246,7 @@ export default function VoiceChatPage() {
     service.startSession();
   };
 
-  const handleSendTextMessage = async () => {
+  const handleSendTextMessage = () => {
     if (!textInputValue.trim()) return;
 
     const userText = textInputValue.trim();
@@ -256,8 +258,6 @@ export default function VoiceChatPage() {
       originalText: userText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-
-    const currentHistory = activeThread?.messages || [];
 
     setThreads(prevThreads => prevThreads.map(t => {
       if (t.id === activeThreadId) {
@@ -272,40 +272,17 @@ export default function VoiceChatPage() {
     setIsAiTyping(true);
     setTimeout(() => scrollToBottom(), 50);
 
-    // Call NestJS Gemini 2.0 Flash Lite chat completion endpoint for fast text conversation
-    try {
-      const chatRes: any = await ApiService.post(API_ENDPOINTS.GEMINI_CHAT, {
-        message: userText,
-        history: currentHistory,
-      });
-
-      setIsAiTyping(false);
-
-      const replyText = chatRes?.reply || chatRes?.text || "That's great! Keep practicing your English!";
-      
-      const aiReplyMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        originalText: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setThreads(prevThreads => prevThreads.map(t => {
-        if (t.id === activeThreadId) {
-          return {
-            ...t,
-            messages: [...t.messages, aiReplyMsg]
-          };
+    // Send text message directly over real-time WebSocket connection
+    if (liveServiceRef.current && (liveStatus === 'connected' || liveStatus === 'listening' || liveStatus === 'speaking')) {
+      liveServiceRef.current.sendTextMessage(userText);
+    } else {
+      // Initialize WebSocket connection and send message over WebSocket
+      toggleLiveCall();
+      setTimeout(() => {
+        if (liveServiceRef.current) {
+          liveServiceRef.current.sendTextMessage(userText);
         }
-        return t;
-      }));
-
-      setTimeout(() => scrollToBottom(), 100);
-    } catch (err: any) {
-      setIsAiTyping(false);
-      console.error('Gemini API Error:', err);
-      const errMsg = err?.response?.data?.message || err?.message || 'Gemini API free-tier quota is currently exhausted. Please try again in 15 seconds.';
-      setLiveError(errMsg);
+      }, 700);
     }
   };
 
