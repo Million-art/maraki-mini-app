@@ -13,6 +13,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useGeminiLive } from '../../hooks/useGeminiLive';
 
 declare global {
   interface Window {
@@ -109,6 +110,23 @@ export default function VoiceChatPage() {
   const durationTimerRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { playText: speakText, stopAudio, playingMessageId, connect } = useGeminiLive();
+
+  // Connect automatically on mount if possible, or wait for first click
+  useEffect(() => {
+    connect();
+  }, [connect]);
+
+  // If user clicks a playing message, stop it. 
+  // If user clicks a new message, playText handles stopping the old one automatically.
+  const handleSpeakClick = (text: string, messageId: string) => {
+    if (playingMessageId === messageId) {
+      stopAudio();
+    } else {
+      speakText(text, messageId);
+    }
+  };
 
   const activeThread = threads.find(t => t.id === activeThreadId) || threads[0];
   const messages = activeThread?.messages || [];
@@ -507,6 +525,8 @@ export default function VoiceChatPage() {
             <>
               <ChatMessages
                 messages={messages}
+                onSpeak={handleSpeakClick}
+                playingMessageId={playingMessageId}
                 onExplain={(msg) => handleSendMessage(msg)}
               />
               {isProcessing && (

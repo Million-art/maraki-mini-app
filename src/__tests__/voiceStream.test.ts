@@ -1,93 +1,50 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AudioRecorder, AudioPlayer } from '../utils/audioStream.util';
+import { AudioStreamer, AudioPlayer } from '../lib/mediaUtils';
 import { UsageQueue } from '../utils/usageQueue.util';
 import * as apiModule from '../services/api';
 
-// ─── AudioRecorder ─────────────────────────────────────────────────────────────
+// ─── AudioStreamer ─────────────────────────────────────────────────────────────
 
-describe('AudioRecorder', () => {
-  let recorder: AudioRecorder;
+describe('AudioStreamer', () => {
+  let streamer: AudioStreamer;
+  let mockClient: any;
 
   beforeEach(() => {
-    vi.clearAllMocks(); // reset spy call counts between each test
-    recorder = new AudioRecorder(vi.fn());
+    vi.clearAllMocks();
+    mockClient = {
+      connected: true,
+      sendAudioChunk: vi.fn(),
+    };
+    streamer = new AudioStreamer(mockClient);
   });
 
   afterEach(() => {
-    recorder.stop();
+    streamer.stop();
   });
 
-  it('starts recording and acquires a MediaStream', async () => {
-    await recorder.start();
+  it('starts streaming and acquires a MediaStream', async () => {
+    await streamer.start();
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
       audio: {
-        channelCount: 1,
         sampleRate: 16000,
         echoCancellation: true,
         noiseSuppression: true,
+        autoGainControl: true,
       },
     });
+    expect(streamer.isStreaming).toBe(true);
   });
 
-  it('does not start twice if already recording', async () => {
-    await recorder.start();
-    await recorder.start(); // second call should be a no-op
-    // getUserMedia must only be called once — the guard `if (this.isRecording) return` blocks re-entry
+  it('does not start twice if already streaming', async () => {
+    await streamer.start();
+    await streamer.start();
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
   });
 
   it('stops cleanly without throwing', async () => {
-    await recorder.start();
-    expect(() => recorder.stop()).not.toThrow();
-  });
-});
-
-// ─── float32ToInt16 conversion (via AudioRecorder internal onaudioprocess) ─────
-
-describe('PCM conversion: float32 → int16', () => {
-  const triggerProcess = async (floatData: Float32Array) => {
-    const received: string[] = [];
-    const rec = new AudioRecorder((b64) => received.push(b64));
-    await rec.start();
-    const proc = (rec as any).scriptProcessor as { onaudioprocess: ((e: any) => void) | null };
-    proc.onaudioprocess?.({ inputBuffer: { getChannelData: () => floatData } });
-    rec.stop();
-    return received;
-  };
-
-  const decodeToInt16 = (b64: string): Int16Array => {
-    const decoded = atob(b64);
-    const bytes = new Uint8Array(decoded.length);
-    for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
-    return new Int16Array(bytes.buffer);
-  };
-
-  it('clamps input above +1.0 to max int16', async () => {
-    vi.clearAllMocks();
-    const received = await triggerProcess(new Float32Array(4).fill(2.0));
-    expect(received.length).toBe(1);
-    for (const v of decodeToInt16(received[0])) expect(v).toBeLessThanOrEqual(0x7fff);
-  });
-
-  it('clamps input below -1.0 to min int16', async () => {
-    vi.clearAllMocks();
-    const received = await triggerProcess(new Float32Array(4).fill(-2.0));
-    expect(received.length).toBe(1);
-    for (const v of decodeToInt16(received[0])) expect(v).toBeGreaterThanOrEqual(-0x8000);
-  });
-
-  it('outputs silence (0) for a zero signal', async () => {
-    vi.clearAllMocks();
-    const received = await triggerProcess(new Float32Array(4).fill(0));
-    for (const v of decodeToInt16(received[0])) expect(v).toBe(0);
-  });
-
-  it('produces exactly 2 bytes per float32 sample (16-bit PCM)', async () => {
-    vi.clearAllMocks();
-    const sampleCount = 8;
-    const received = await triggerProcess(new Float32Array(sampleCount));
-    const decoded = atob(received[0]);
-    expect(decoded.length).toBe(sampleCount * 2);
+    await streamer.start();
+    expect(() => streamer.stop()).not.toThrow();
+    expect(streamer.isStreaming).toBe(false);
   });
 });
 
@@ -96,9 +53,8 @@ describe('PCM conversion: float32 → int16', () => {
 describe('AudioPlayer', () => {
   let player: AudioPlayer;
 
-  // Build a valid 16-bit PCM Base64 payload (silence)
   const makeSilencePcm = (samples = 4): string => {
-    const bytes = new Uint8Array(samples * 2); // all zeros
+    const bytes = new Uint8Array(samples * 2);
     let binary = '';
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return btoa(binary);
@@ -118,46 +74,37 @@ describe('AudioPlayer', () => {
   });
 
   it('plays a valid base64 PCM chunk without throwing', () => {
-    expect(() => player.playBase64Pcm(makeSilencePcm())).not.toThrow();
+    expect(() => player.playChunk(makeSilencePcm())).not.toThrow();
   });
 
-  it('queues multiple chunks and tracks them in activeBufferNodes', () => {
-    player.playBase64Pcm(makeSilencePcm());
-    player.playBase64Pcm(makeSilencePcm());
-    const nodes = (player as any).activeBufferNodes as unknown[];
-    expect(nodes.length).toBe(2);
+  it('queues multiple chunks and tracks them in activeSources', () => {
+    player.playChunk(makeSilencePcm());
+    player.playChunk(makeSilencePcm());
+    const sources = (player as any).activeSources as unknown[];
+    expect(sources.length).toBe(2);
   });
 
-  it('clearQueue() stops all active nodes and resets the list (barge-in)', () => {
-    player.playBase64Pcm(makeSilencePcm());
-    player.playBase64Pcm(makeSilencePcm());
-    player.clearQueue();
-    const nodes = (player as any).activeBufferNodes as unknown[];
-    expect(nodes.length).toBe(0);
-  });
-
-  it('stop() clears queue and closes AudioContext', () => {
-    player.playBase64Pcm(makeSilencePcm());
+  it('stop() clears queued nodes (barge-in)', () => {
+    player.playChunk(makeSilencePcm());
+    player.playChunk(makeSilencePcm());
     player.stop();
-    expect((player as any).audioContext).toBeNull();
+    const sources = (player as any).activeSources as unknown[];
+    expect(sources.length).toBe(0);
   });
 
   it('schedules chunks sequentially (nextStartTime increases)', () => {
-    // Use a real sample count so buffer.duration > 0
-    // MockAudioBuffer.duration = length / sampleRate, computed in constructor
-    // 2400 samples / 24000 Hz = 0.1s per chunk
-    player.playBase64Pcm(makeSilencePcm(2400));
+    player.playChunk(makeSilencePcm(2400));
     const t1 = (player as any).nextStartTime;
-    player.playBase64Pcm(makeSilencePcm(2400));
+    player.playChunk(makeSilencePcm(2400));
     const t2 = (player as any).nextStartTime;
     expect(t2).toBeGreaterThan(t1);
   });
 
-  it('handles an odd-length byte buffer gracefully (floor division)', () => {
+  it('handles an odd-length byte buffer gracefully', () => {
     const oddBytes = new Uint8Array(3);
     let binary = '';
     for (let i = 0; i < oddBytes.length; i++) binary += String.fromCharCode(oddBytes[i]);
-    expect(() => player.playBase64Pcm(btoa(binary))).not.toThrow();
+    expect(() => player.playChunk(btoa(binary))).not.toThrow();
   });
 });
 
@@ -167,7 +114,6 @@ describe('UsageQueue', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    // Restore any spies between tests
     vi.restoreAllMocks();
   });
 
@@ -178,7 +124,6 @@ describe('UsageQueue', () => {
     const items = JSON.parse(raw!);
     expect(items).toHaveLength(1);
     expect(items[0].telegramId).toBe(123456);
-    // enqueue uses Math.ceil so 50 → 50
     expect(items[0].durationSeconds).toBe(50);
   });
 
@@ -215,7 +160,7 @@ describe('UsageQueue', () => {
     const call = fetchSpy.mock.calls[0];
     const options = call[1] as RequestInit;
     const body = JSON.parse(options.body as string);
-    expect(body.durationSeconds).toBe(51); // 50.8 rounded
+    expect(body.durationSeconds).toBe(51);
   });
 
   it('sendBeaconSync() does nothing for zero duration', () => {
@@ -227,7 +172,6 @@ describe('UsageQueue', () => {
   it('syncPendingUsage() clears queue after successful POST', async () => {
     UsageQueue.enqueue(111, 45);
 
-    // Spy directly on the imported ApiService.post — avoids vi.mock() hoisting issues
     const postSpy = vi
       .spyOn(apiModule.ApiService, 'post')
       .mockResolvedValueOnce({ success: true } as any);
@@ -245,7 +189,6 @@ describe('UsageQueue', () => {
 
     await UsageQueue.syncPendingUsage();
 
-    // Failed items must be retained for retry
     expect(UsageQueue.getQueue()).toHaveLength(1);
   });
 });

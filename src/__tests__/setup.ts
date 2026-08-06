@@ -4,19 +4,22 @@
 class MockAudioBufferSourceNode {
   buffer: any = null;
   onended: (() => void) | null = null;
-  private _connected = false;
 
-  connect(_dest: any) { this._connected = true; }
+  connect(_dest: any) {}
   start(_when?: number) {}
   stop() { this.onended?.(); }
 }
 
 class MockAudioBuffer {
-  constructor(
-    public numberOfChannels: number,
-    public length: number,
-    public sampleRate: number,
-  ) {}
+  numberOfChannels: number;
+  length: number;
+  sampleRate: number;
+
+  constructor(numberOfChannels: number, length: number, sampleRate: number) {
+    this.numberOfChannels = numberOfChannels;
+    this.length = length;
+    this.sampleRate = sampleRate;
+  }
   get duration() {
     return this.length / this.sampleRate;
   }
@@ -33,6 +36,7 @@ class MockScriptProcessorNode {
 
 class MockMediaStreamSourceNode {
   connect(_dest: any) {}
+  disconnect() {}
 }
 
 class MockAudioContext {
@@ -40,6 +44,9 @@ class MockAudioContext {
   currentTime = 0;
   destination = {} as AudioDestinationNode;
   sampleRate: number;
+  audioWorklet = {
+    addModule: vi.fn().mockResolvedValue(undefined),
+  };
 
   constructor(options?: { sampleRate?: number }) {
     this.sampleRate = options?.sampleRate ?? 44100;
@@ -70,11 +77,19 @@ class MockAudioContext {
   }
 
   resume() { this.state = 'running'; }
+  suspend() { this.state = 'suspended'; }
   close() {}
+}
+
+class MockAudioWorkletNode {
+  port = { onmessage: null as any };
+  connect() {}
+  disconnect() {}
 }
 
 (global as any).AudioContext = MockAudioContext;
 (global as any).webkitAudioContext = MockAudioContext;
+(global as any).AudioWorkletNode = MockAudioWorkletNode;
 
 // ── navigator.mediaDevices.getUserMedia mock ───────────────────────────────────
 const mockTrack = { stop: vi.fn() };
