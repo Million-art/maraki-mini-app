@@ -459,7 +459,7 @@ export default function VoiceChatPage() {
           )}
 
           {/* Mascot Stage Art Container */}
-          <div className="relative flex items-center justify-center w-72 h-72 md:w-80 md:h-80 my-auto">
+          <div className="relative flex items-center justify-center w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 my-auto">
 
             {/* Speaking Background Wave Effect */}
             {liveStatus === 'speaking' && (
@@ -482,7 +482,7 @@ export default function VoiceChatPage() {
 
             {/* Connected State Background Circle */}
             {(!isCallActive || liveStatus === 'connected') && (
-              <div className="absolute w-64 h-64 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
+              <div className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
             )}
 
             {/* Main Mascot Image */}
@@ -491,7 +491,7 @@ export default function VoiceChatPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center"
+              className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center"
             >
               <img
                 src={getMascotAsset()}
@@ -501,16 +501,16 @@ export default function VoiceChatPage() {
 
               {/* Connected State Green Checkmark Badge */}
               {(!isCallActive || liveStatus === 'connected') && (
-                <div className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
-                  <CheckCircle2 className="w-6 h-6 fill-current text-white stroke-[2.5]" />
+                <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
+                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 fill-current text-white stroke-[2.5]" />
                 </div>
               )}
             </motion.div>
           </div>
 
           {/* Status Display Text */}
-          <div className="text-center space-y-1 mt-4 mb-2">
-            <h2 className="text-xl font-extrabold text-[#22C55E] tracking-tight">
+          <div className="text-center space-y-1 mt-2 sm:mt-4 mb-1 sm:mb-2">
+            <h2 className="text-lg sm:text-xl font-extrabold text-[#22C55E] tracking-tight">
               {getStatusTitle()}
             </h2>
             {(!isCallActive || liveStatus === 'connected') && (
@@ -564,7 +564,7 @@ export default function VoiceChatPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="absolute inset-x-0 bottom-24 top-20 bg-white border-t border-gray-200 z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
+              className="absolute inset-x-0 bottom-28 top-20 bg-white border-t border-gray-200 z-30 flex flex-col shadow-2xl rounded-t-[32px] overflow-hidden"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                 <div className="flex items-center gap-2">
@@ -592,7 +592,7 @@ export default function VoiceChatPage() {
         </AnimatePresence>
 
         {/* Bottom Call Control Panel (Floating Glass Panel) */}
-        <div className="px-4 pt-2 pb-8 md:pb-8 shrink-0 z-40 mb-2">
+        <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
           <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
 
             {/* 1. Mute Button */}
