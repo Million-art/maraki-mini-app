@@ -26,7 +26,6 @@ describe('AudioStreamer', () => {
     await streamer.start();
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
       audio: {
-        sampleRate: 16000,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,

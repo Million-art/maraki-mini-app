@@ -21,7 +21,6 @@ export class AudioStreamer {
 
     try {
       const audioConstraints: MediaTrackConstraints = {
-        sampleRate: this.sampleRate,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,

@@ -215,11 +215,16 @@ export class GeminiLiveClient {
    * Close WebSocket connection
    */
   public disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    const ws = this.ws;
+    this.ws = null;
     this.connected = false;
+    if (ws) {
+      ws.onclose = null;
+      ws.onerror = null;
+      try {
+        ws.close();
+      } catch (e) {}
+    }
     this.options.onStatusChange?.('disconnected');
   }
 

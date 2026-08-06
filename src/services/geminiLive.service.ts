@@ -152,9 +152,11 @@ export class GeminiLiveService {
     this.player?.stop();
     this.player = null;
 
-    if (this.client) {
-      this.client.disconnect();
-      this.client = null;
+    const clientToClose = this.client;
+    this.client = null;
+
+    if (clientToClose) {
+      clientToClose.disconnect();
     }
 
     this.handlers.onStatusChange?.('disconnected');
