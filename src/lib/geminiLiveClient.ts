@@ -66,9 +66,13 @@ export class GeminiLiveClient {
           resolve(true);
         };
 
-        ws.onclose = () => {
+        ws.onclose = (evt) => {
           this.connected = false;
           this.ws = null;
+          if (evt.code !== 1000 && evt.code !== 1005) {
+            const reason = evt.reason ? `: ${evt.reason}` : '';
+            this.options.onError?.(`Live call connection closed by server (Code ${evt.code}${reason})`);
+          }
           this.options.onStatusChange?.('disconnected');
         };
 
