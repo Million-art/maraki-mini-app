@@ -840,29 +840,43 @@ export default function VoiceChatPage() {
           )}
 
           {/* Mascot Stage */}
-          <div className="relative flex items-center justify-center w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] transition-all">
-            {/* Speaking Background Wave Effect */}
+          <div className="relative flex items-center justify-center w-[22rem] h-[22rem] sm:w-[27rem] sm:h-[27rem] md:w-[32rem] md:h-[32rem] transition-all">
+            {/* 1. Speaking State: Expands dynamically with speech */}
             {liveStatus === 'speaking' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.95, 1.15, 0.95] }}
-                transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#22C55E]/20 via-[#10B981]/30 to-[#22C55E]/20 blur-2xl pointer-events-none"
+                animate={{ opacity: [0.3, 0.8, 0.4, 0.9, 0.3], scale: [0.95, 1.2, 1.05, 1.25, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#22C55E]/30 via-[#10B981]/40 to-[#22C55E]/30 blur-[32px] pointer-events-none"
               />
             )}
 
-            {/* Listening Background Glow Effect */}
+            {/* 2. Thinking State: Purple/Orange Pulse */}
+            {liveStatus === 'thinking' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: [0.2, 0.7, 0.2], scale: [0.95, 1.1, 0.95], rotate: [0, 90, 180] }}
+                transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 via-orange-400/20 to-purple-500/20 blur-2xl pointer-events-none"
+              />
+            )}
+
+            {/* 3. Listening State: Fast energetic pulse simulating mic input */}
             {liveStatus === 'listening' && (
               <motion.div
-                animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.95, 1.1, 0.95] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                className="absolute inset-0 rounded-full bg-[#7CBD00]/25 blur-2xl pointer-events-none"
+                animate={{ opacity: [0.3, 0.8, 0.2, 0.6, 0.3], scale: [0.98, 1.15, 1.0, 1.1, 0.98] }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+                className="absolute inset-0 rounded-full bg-[#7CBD00]/30 blur-2xl pointer-events-none"
               />
             )}
 
-            {/* Connected State Background Circle */}
-            {(!isCallActive || liveStatus === 'connected') && (
-              <div className="absolute w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
+            {/* 4. Idle / Connected State: Soft breathing green glow */}
+            {(!isCallActive || liveStatus === 'connected' || liveStatus === 'connecting') && (
+              <motion.div
+                animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                className="absolute w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] rounded-full bg-[#7CBD00]/10 blur-[24px] pointer-events-none"
+              />
             )}
 
             {/* Subtle Floating Particles */}
@@ -874,7 +888,7 @@ export default function VoiceChatPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] flex items-center justify-center"
+              className="relative w-[22rem] h-[22rem] sm:w-[27rem] sm:h-[27rem] md:w-[32rem] md:h-[32rem] flex items-center justify-center"
             >
               <img
                 src={getMascotAsset()}
