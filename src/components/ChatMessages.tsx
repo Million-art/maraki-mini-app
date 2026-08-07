@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { computeWordDiff, type DiffToken } from '../utils/strikethrough.util';
 
@@ -10,7 +9,7 @@ export interface ChatMessagesProps {
   isTyping?: boolean;
 }
 
-export default function ChatMessages({ messages, onSpeak, onExplain, playingMessageId, isTyping }: ChatMessagesProps) {
+export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
   
   const renderStrikethroughMessage = (msg: any) => {
     if (!msg.correctedText || msg.originalText === msg.correctedText) {

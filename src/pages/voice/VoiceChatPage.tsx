@@ -15,7 +15,6 @@ import {
   Heart,
   Users,
   Menu,
-  CheckCircle2,
   MessageSquare,
   Send,
   Settings,
@@ -143,7 +142,6 @@ export default function VoiceChatPage() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
-  const durationTimerRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { playText: speakText, stopAudio, playingMessageId, connect } = useGeminiLive();
