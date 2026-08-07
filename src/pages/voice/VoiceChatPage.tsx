@@ -72,13 +72,6 @@ function MALogo({ className = 'w-10 h-10' }: { className?: string }) {
   );
 }
 
-const TOPICS = [
-  { label: 'Career', category: 'General', icon: MessageCircle, prompt: 'What are your career goals for the future?' },
-  { label: 'Travel & Flying', category: 'Travel', icon: Plane, prompt: 'Where is your dream travel destination and why?' },
-  { label: 'Dating', category: 'Lifestyle', icon: Heart, prompt: 'What traits do you look for in a partner?' },
-  { label: 'Social', category: 'Social', icon: Users, prompt: 'How do you easily start a conversation with a new friend?' },
-];
-
 export default function VoiceChatPage() {
   useOutletContext<{ isDarkMode: boolean }>();
 
@@ -126,7 +119,6 @@ export default function VoiceChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState<string>('Dating');
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
@@ -379,16 +371,28 @@ export default function VoiceChatPage() {
         if (!text || !text.trim()) return;
         setIsAiTyping(false);
 
-        const newMsg: Message = {
-          id: Date.now().toString(),
-          sender,
-          originalText: text,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-
         setThreads((prevThreads) =>
           prevThreads.map((t) => {
             if (t.id === activeThreadId) {
+              const lastMsg = t.messages[t.messages.length - 1];
+              
+              // If the last message is from the same sender, append to it
+              if (lastMsg && lastMsg.sender === sender) {
+                const updatedMsg = { ...lastMsg, originalText: lastMsg.originalText + text };
+                return {
+                  ...t,
+                  messages: [...t.messages.slice(0, -1), updatedMsg],
+                };
+              }
+
+              // Otherwise, create a brand new message bubble
+              const newMsg: Message = {
+                id: Date.now().toString(),
+                sender,
+                originalText: text,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              };
+
               return {
                 ...t,
                 messages: [...t.messages, newMsg],
@@ -603,10 +607,12 @@ export default function VoiceChatPage() {
       case 'speaking':
         return 'Speaking...';
       case 'connecting':
-        return 'Connecting...';
+        return 'Calling...';
       case 'connected':
-      default:
         return 'Connected';
+      case 'disconnected':
+      default:
+        return 'Ready';
     }
   };
 
@@ -788,33 +794,6 @@ export default function VoiceChatPage() {
           </button>
         </header>
 
-        {/* Suggested Topics Pill Carousel */}
-        <div className="px-4 py-3 flex gap-2.5 overflow-x-auto no-scrollbar shrink-0 justify-center">
-          {TOPICS.map((topic, idx) => {
-            const IconComponent = topic.icon;
-            const isSelected = selectedTopic === topic.label;
-            return (
-              <button
-                key={idx}
-                onClick={() => {
-                  setSelectedTopic(topic.label);
-                  if (liveServiceRef.current && isCallActive) {
-                    liveServiceRef.current.sendTextMessage(`Let's practice the topic: ${topic.label}`);
-                  }
-                }}
-                className={cn(
-                  'whitespace-nowrap px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all border shrink-0 shadow-2xs active:scale-95',
-                  isSelected
-                    ? 'bg-[#FF5500] border-[#FF5500] text-white shadow-sm shadow-[#FF5500]/25'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300',
-                )}
-              >
-                <IconComponent className={cn('w-4 h-4', isSelected ? 'text-white' : 'text-gray-500')} />
-                <span>{topic.label}</span>
-              </button>
-            );
-          })}
-        </div>
 
         {/* Center Stage Mascot Avatar & Video Preview Stage */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
@@ -1007,6 +986,9 @@ export default function VoiceChatPage() {
                     <Phone className="w-6 h-6 text-white stroke-[2.5] fill-current" />
                   )}
                 </button>
+                <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">
+                  {isCallActive ? 'End Call' : 'Call'}
+                </span>
               </div>
 
               {/* 2. Mute Button Placeholder/Container (Now in Center) */}
@@ -1014,7 +996,13 @@ export default function VoiceChatPage() {
                 {isCallActive && (
                   <>
                     <button
-                      onClick={() => setIsMuted(!isMuted)}
+                      onClick={() => {
+                        const newMutedState = !isMuted;
+                        setIsMuted(newMutedState);
+                        if (liveServiceRef.current) {
+                          liveServiceRef.current.setMuted(newMutedState);
+                        }
+                      }}
                       className={cn(
                         'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
                         isMuted
@@ -1044,6 +1032,7 @@ export default function VoiceChatPage() {
                 >
                   <MessageSquare className="w-6 h-6 text-white stroke-[2.5] fill-current" />
                 </button>
+                <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">Chat</span>
               </div>
             </div>
           </div>

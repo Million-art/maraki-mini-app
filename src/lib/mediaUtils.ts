@@ -358,6 +358,15 @@ export class AudioStreamer {
     }
   }
 
+  public setMuted(muted: boolean) {
+    if (this.mediaStream) {
+      this.mediaStream.getAudioTracks().forEach(track => {
+        track.enabled = !muted;
+      });
+    }
+  }
+
+
   private convertToPCM16(float32Array: Float32Array): ArrayBuffer {
     const buffer = new ArrayBuffer(float32Array.length * 2);
     const view = new DataView(buffer);

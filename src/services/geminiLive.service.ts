@@ -161,6 +161,12 @@ export class GeminiLiveService {
     }
   }
 
+  public setMuted(muted: boolean): void {
+    if (this.streamer) {
+      this.streamer.setMuted(muted);
+    }
+  }
+
   public async startCamera(options: VideoStreamOptions = {}): Promise<HTMLVideoElement | null> {
     if (!this.client || !this.client.connected) {
       throw new Error('Gemini Live session is not connected.');
