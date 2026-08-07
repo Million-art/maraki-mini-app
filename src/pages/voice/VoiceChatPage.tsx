@@ -424,7 +424,11 @@ export default function VoiceChatPage() {
     let isMessageAdded = false;
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      let baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+      
       const response = await fetch(`${baseUrl}${API_ENDPOINTS.CHAT_COMPLETION_STREAM}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
