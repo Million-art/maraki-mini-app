@@ -200,6 +200,61 @@ export default function VoiceChatPage() {
 
   const isFullyConnected = liveStatus === 'listening' || liveStatus === 'speaking' || liveStatus === 'thinking';
 
+  // Listen for Grammar Mistakes reported by Gemini Tools
+  useEffect(() => {
+    const handleGrammarMistake = (e: any) => {
+      const data = e.detail;
+      
+      setThreads((prevThreads) =>
+        prevThreads.map((t) => {
+          if (t.id === activeThreadId) {
+            // Find the last user message to update
+            const messages = [...t.messages];
+            const lastUserMsgIndex = [...messages].reverse().findIndex(m => m.sender === 'user');
+            
+            if (lastUserMsgIndex !== -1) {
+              const actualIndex = messages.length - 1 - lastUserMsgIndex;
+              messages[actualIndex] = {
+                ...messages[actualIndex],
+                originalText: data.originalText,
+                correctedText: data.correctedText,
+                grammarMistake: {
+                  type: data.mistakeType,
+                  explanation: data.explanation,
+                  nativeAlternative: data.nativeAlternative,
+                }
+              };
+            } else {
+              // Fallback if no user message exists yet
+              messages.push({
+                id: Date.now().toString(),
+                sender: 'user',
+                originalText: data.originalText,
+                correctedText: data.correctedText,
+                grammarMistake: {
+                  type: data.mistakeType,
+                  explanation: data.explanation,
+                  nativeAlternative: data.nativeAlternative,
+                },
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              });
+            }
+
+            return {
+              ...t,
+              messages,
+            };
+          }
+          return t;
+        }),
+      );
+      setTimeout(() => scrollToBottom(), 50);
+    };
+
+    window.addEventListener('maraki_grammar_mistake', handleGrammarMistake);
+    return () => window.removeEventListener('maraki_grammar_mistake', handleGrammarMistake);
+  }, [activeThreadId]);
+
   // Call duration timer effect
   useEffect(() => {
     let timer: any;

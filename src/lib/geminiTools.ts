@@ -148,8 +148,61 @@ export class AddCSSStyleTool extends FunctionCallDefinition {
   }
 }
 
+/**
+ * Report Grammar Mistake Tool - Dispatches an event to correct user grammar in the UI
+ */
+export class ReportGrammarMistakeTool extends FunctionCallDefinition {
+  constructor() {
+    super(
+      'report_grammar_mistake',
+      'Reports a grammar, pronunciation, or phrasing mistake made by the user. Must be called before continuing the conversation.',
+      {
+        type: 'object',
+        properties: {
+          originalText: {
+            type: 'string',
+            description: 'The exact incorrect sentence or phrase the user spoke.',
+          },
+          correctedText: {
+            type: 'string',
+            description: 'The grammatically correct version of what the user said.',
+          },
+          mistakeType: {
+            type: 'string',
+            description: "A short classification of the mistake (e.g., 'Verb Tense', 'Pronunciation', 'Preposition').",
+          },
+          explanation: {
+            type: 'string',
+            description: 'A brief, friendly explanation of why it was wrong and how to fix it.',
+          },
+          nativeAlternative: {
+            type: 'string',
+            description: 'A natural, native-sounding alternative way to say the sentence.',
+          },
+        },
+      },
+      ['originalText', 'correctedText', 'mistakeType', 'explanation', 'nativeAlternative'],
+    );
+  }
+
+  functionToCall(parameters: {
+    originalText: string;
+    correctedText: string;
+    mistakeType: string;
+    explanation: string;
+    nativeAlternative: string;
+  }): { success: boolean } {
+    console.log(`📝 Grammar Mistake Detected:`, parameters);
+    window.dispatchEvent(
+      new CustomEvent('maraki_grammar_mistake', { detail: parameters })
+    );
+    return { success: true };
+  }
+}
+
 // Global Registry of available custom tools for Gemini Live API
 export const defaultGeminiTools: FunctionCallDefinition[] = [
   new ShowAlertTool(),
   new AddCSSStyleTool(),
+  new ReportGrammarMistakeTool(),
 ];
