@@ -390,6 +390,10 @@ export class AudioPlayer {
   private onEndedCallback: (() => void) | null = null;
   private volume: number = 1.0;
 
+  private chunkQueue: AudioBuffer[] = [];
+  private isPlaying: boolean = false;
+  private minBufferChunks: number = 4; // Buffer length to hide network jitter
+
   constructor() {
     this.initContext();
   }
@@ -426,43 +430,67 @@ export class AudioPlayer {
     const audioBuffer = this.audioContext.createBuffer(1, float32Data.length, this.sampleRate);
     audioBuffer.getChannelData(0).set(float32Data);
 
-    const source = this.audioContext.createBufferSource();
-    source.buffer = audioBuffer;
+    // Add to jitter buffer queue
+    this.chunkQueue.push(audioBuffer);
+    this.processQueue();
+  }
 
-    if (this.volume !== 1.0) {
-      const gainNode = this.audioContext.createGain();
-      gainNode.gain.value = this.volume;
-      source.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
-    } else {
-      source.connect(this.audioContext.destination);
+  private processQueue() {
+    if (!this.audioContext) return;
+    
+    // If we are not currently playing, wait until we have enough chunks buffered
+    if (!this.isPlaying && this.chunkQueue.length < this.minBufferChunks) {
+      return;
     }
 
-    const currentTime = this.audioContext.currentTime;
-    if (this.nextStartTime < currentTime) {
-      this.nextStartTime = currentTime;
+    this.isPlaying = true;
+
+    while (this.chunkQueue.length > 0) {
+      const audioBuffer = this.chunkQueue.shift()!;
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      if (this.volume !== 1.0) {
+        const gainNode = this.audioContext.createGain();
+        gainNode.gain.value = this.volume;
+        source.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+      } else {
+        source.connect(this.audioContext.destination);
+      }
+
+      const currentTime = this.audioContext.currentTime;
+      
+      // If we fell behind (underrun), jump to current time + a tiny safety margin
+      if (this.nextStartTime < currentTime) {
+        this.nextStartTime = currentTime + 0.05; 
+      }
+
+      source.start(this.nextStartTime);
+      this.nextStartTime += audioBuffer.duration;
+      this.activeSources.push(source);
+
+      source.onended = () => {
+        const idx = this.activeSources.indexOf(source);
+        if (idx !== -1) {
+          this.activeSources.splice(idx, 1);
+        }
+        // If the queue is empty and all sources finished playing, we reached the end (or underrun)
+        if (this.activeSources.length === 0 && this.chunkQueue.length === 0) {
+          this.isPlaying = false;
+          this.onEndedCallback?.();
+        }
+      };
     }
-
-    source.start(this.nextStartTime);
-    this.nextStartTime += audioBuffer.duration;
-
-    this.activeSources.push(source);
-
-    source.onended = () => {
-      const idx = this.activeSources.indexOf(source);
-      if (idx !== -1) {
-        this.activeSources.splice(idx, 1);
-      }
-      if (this.activeSources.length === 0) {
-        this.onEndedCallback?.();
-      }
-    };
   }
 
   /**
    * Clear queued audio immediately (e.g. user barge-in / interruption)
    */
   public stop() {
+    this.chunkQueue = [];
+    this.isPlaying = false;
+    
     this.activeSources.forEach((src) => {
       try {
         src.stop();
