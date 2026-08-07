@@ -351,9 +351,20 @@ export default function VoiceChatPage() {
     if (telegramId) {
       try {
         const profileRes: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
+        console.log('🚀 RAW PROFILE FETCH RESPONSE:', profileRes);
+        
         if (profileRes?.systemInstruction) {
           systemInstruction = profileRes.systemInstruction;
+        } else if (profileRes?.data?.systemInstruction) {
+          systemInstruction = profileRes.data.systemInstruction;
         }
+
+        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        if (systemInstruction && (tgUser as any)?.first_name) {
+          systemInstruction = systemInstruction.replace('the user', (tgUser as any).first_name);
+        }
+        
+        console.log('🎯 EXTRACTED SYSTEM INSTRUCTION:', systemInstruction);
       } catch (err) {
         console.warn('Failed to fetch coaching profile, using default prompt', err);
       }
