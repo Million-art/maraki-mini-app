@@ -15,6 +15,7 @@ export interface LiveSessionHandlers {
   onStatusChange?: (status: 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error' | 'disconnected') => void;
   onTranscriptReceived?: (sender: 'user' | 'ai', text: string, isFinal?: boolean) => void;
   onError?: (errMessage: string) => void;
+  systemInstruction?: string;
 }
 
 export class GeminiLiveService {
@@ -59,10 +60,12 @@ export class GeminiLiveService {
         throw new Error('No valid ephemeral token received from server.');
       }
 
+      const defaultInstruction = "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. Wait until they finish speaking, then correct them.";
+
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
         tools: defaultGeminiTools,
-        systemInstruction: "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. Wait until they finish speaking, then correct them.",
+        systemInstruction: this.handlers.systemInstruction || defaultInstruction,
         onStatusChange: (status) => {
           if (status === 'connected') {
             this.isConnected = true;

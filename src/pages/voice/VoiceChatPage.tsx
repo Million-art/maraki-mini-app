@@ -337,7 +337,7 @@ export default function VoiceChatPage() {
   }, []);
 
   // Toggle Live AI Call Session
-  const toggleLiveCall = () => {
+  const toggleLiveCall = async () => {
     if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
@@ -345,7 +345,22 @@ export default function VoiceChatPage() {
     }
 
     setLiveError(null);
+    setLiveStatus('connecting'); // Show connecting state immediately while fetching profile
+
+    let systemInstruction = undefined;
+    if (telegramId) {
+      try {
+        const profileRes = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
+        if (profileRes.data?.systemInstruction) {
+          systemInstruction = profileRes.data.systemInstruction;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch coaching profile, using default prompt', err);
+      }
+    }
+
     const service = new GeminiLiveService(telegramId, {
+      systemInstruction,
       onStatusChange: (status) => {
         setLiveStatus(status);
       },

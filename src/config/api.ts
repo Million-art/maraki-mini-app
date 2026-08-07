@@ -85,6 +85,7 @@ export const API_ENDPOINTS = {
   STUDENT_BY_TELEGRAM_ID: (telegramId: number) => `/api/students/${telegramId}`,
   STUDENT_USAGE: (telegramId: number) => `/api/student/usage/${telegramId}`,
   STUDENT_USAGE_INCREMENT: (telegramId: number) => `/api/student/usage/${telegramId}/increment`,
+  COACHING_PROFILE: (telegramId: string) => `/api/student/${telegramId}/coaching-profile`,
   
   // Payment Verification
   VERIFY_BANK_PAYMENT: '/api/student/verify-payment',
