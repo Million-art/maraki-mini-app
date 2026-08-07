@@ -365,6 +365,21 @@ export default function VoiceChatPage() {
     if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
+
+      // Trigger backend to save session, which will generate and send the Telegram summary bot message
+      if (telegramId && activeThread && activeThread.messages.length > 0) {
+        try {
+          await ApiService.post('/api/gemini/save-voice-session', {
+            telegramId: telegramId.toString(),
+            durationSeconds: callDuration,
+            messages: activeThread.messages,
+          });
+          console.log('Session saved and summary requested.');
+        } catch (err) {
+          console.error('Failed to save voice session:', err);
+        }
+      }
+
       return;
     }
 
