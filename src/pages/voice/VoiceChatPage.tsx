@@ -350,8 +350,8 @@ export default function VoiceChatPage() {
     let systemInstruction = undefined;
     if (telegramId) {
       try {
-        const profileRes = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
-        if (profileRes.data?.systemInstruction) {
+        const profileRes: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
+        if (profileRes?.data?.systemInstruction) {
           systemInstruction = profileRes.data.systemInstruction;
         }
       } catch (err) {
