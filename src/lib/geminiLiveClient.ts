@@ -32,6 +32,7 @@ export interface GeminiLiveOptions {
   systemInstruction?: string;
   voiceName?: string;
   tools?: FunctionCallDefinition[];
+  responseModalities?: ('TEXT' | 'AUDIO' | 'IMAGE')[];
 }
 
 export class GeminiLiveClient {
@@ -136,7 +137,7 @@ export class GeminiLiveClient {
       setup: {
         model: 'models/gemini-3.1-flash-live-preview',
         generationConfig: {
-          responseModalities: ['AUDIO'],
+          responseModalities: this.options.responseModalities || ['AUDIO'],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
