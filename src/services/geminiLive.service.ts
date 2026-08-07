@@ -62,7 +62,7 @@ export class GeminiLiveService {
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
         tools: defaultGeminiTools,
-        systemInstruction: "You are Maraki Coach, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. Wait until they finish speaking, then correct them.",
+        systemInstruction: "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. Wait until they finish speaking, then correct them.",
         onStatusChange: (status) => {
           if (status === 'connected') {
             this.isConnected = true;

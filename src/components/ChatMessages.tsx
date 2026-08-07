@@ -10,7 +10,7 @@ export interface ChatMessagesProps {
 }
 
 export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
-  
+
   const renderStrikethroughMessage = (msg: any) => {
     if (!msg.correctedText || msg.originalText === msg.correctedText) {
       return <span>{msg.originalText}</span>;
@@ -52,21 +52,19 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
       {messages.map((message, i) => (
         <div
           key={i}
-          className={`flex ${
-            message.sender === 'user' ? 'justify-end' : 'justify-start'
-          }`}
+          className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'
+            }`}
         >
           <div
-            className={`max-w-md lg:max-w-lg px-6 py-4 rounded-3xl relative shadow-sm ${
-              message.sender === 'user'
+            className={`max-w-md lg:max-w-lg px-6 py-4 rounded-3xl relative shadow-sm ${message.sender === 'user'
                 ? 'bg-primary text-primary-foreground rounded-tr-sm'
                 : 'bg-card text-foreground border border-border rounded-tl-sm'
-            }`}
+              }`}
           >
             {/* Header Label inside Bubble */}
             <div className="flex items-center justify-between gap-4 mb-2 opacity-80">
               <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                {message.sender === 'user' ? 'Your Speech' : 'Maraki Coach'}
+                {message.sender === 'user' ? 'Your Speech' : 'Maraki AI'}
               </span>
               <span className="text-[9px]">
                 {message.timestamp}
@@ -76,7 +74,7 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
             {message.sender === 'user' ? (
               <div>
                 <div className="text-base leading-relaxed">{renderStrikethroughMessage(message)}</div>
-                
+
                 {/* High Impact Grammar Spotlight Card */}
                 {message.grammarMistake && (
                   <div className="mt-3 pt-3 border-t border-white/20 text-[12px] space-y-2">
@@ -105,7 +103,7 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
         <div className="flex justify-start animate-fadeIn">
           <div className="max-w-xs px-5 py-3 rounded-3xl bg-white border border-gray-200/80 rounded-tl-sm shadow-sm space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Maraki Coach</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Maraki AI</span>
               <span className="text-[10px] text-[#FF5500] font-semibold animate-pulse">is typing...</span>
             </div>
             <div className="flex items-center gap-1.5 py-1">

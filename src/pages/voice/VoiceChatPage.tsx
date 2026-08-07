@@ -455,6 +455,16 @@ export default function VoiceChatPage() {
 
             try {
               const data = JSON.parse(jsonStr);
+              if (data.error) {
+                console.error('Server Stream Error:', data.error);
+                setLiveError(data.error);
+                setIsAiTyping(false);
+                break;
+              }
+              if (data.done) {
+                setIsAiTyping(false);
+                break;
+              }
               if (data.text) {
                 setIsAiTyping(false);
                 accumulatedText += data.text;
