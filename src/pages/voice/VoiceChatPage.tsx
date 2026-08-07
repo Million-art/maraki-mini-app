@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Send,
   Settings,
+  Disc,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
@@ -72,6 +73,36 @@ function MALogo({ className = 'w-10 h-10' }: { className?: string }) {
   );
 }
 
+function FloatingParticles() {
+  const particles = useMemo(() => {
+    return Array.from({ length: 30 }).map(() => ({
+      size: Math.random() * 5 + 3, // 3px to 8px
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      y: [0, -(Math.random() * 60 + 20), 0],
+      x: [0, Math.random() * 50 - 25, 0],
+      opacity: [0, Math.random() * 0.5 + 0.3, 0],
+      scale: [0.8, 1.5, 0.8],
+      duration: Math.random() * 5 + 5,
+      delay: Math.random() * 5,
+    }));
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-visible">
+      {particles.map((p, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-[#7CBD00] blur-[1px]"
+          style={{ width: p.size, height: p.size, top: p.top, left: p.left }}
+          animate={{ y: p.y, x: p.x, opacity: p.opacity, scale: p.scale }}
+          transition={{ duration: p.duration, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function VoiceChatPage() {
   useOutletContext<{ isDarkMode: boolean }>();
 
@@ -119,6 +150,7 @@ export default function VoiceChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
@@ -612,7 +644,7 @@ export default function VoiceChatPage() {
         return 'Connected';
       case 'disconnected':
       default:
-        return 'Ready';
+        return '😊 Ready to practice?';
     }
   };
 
@@ -808,7 +840,7 @@ export default function VoiceChatPage() {
           )}
 
           {/* Mascot Stage */}
-          <div className="relative flex items-center justify-center w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 my-auto transition-all">
+          <div className="relative flex items-center justify-center w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] transition-all">
             {/* Speaking Background Wave Effect */}
             {liveStatus === 'speaking' && (
               <motion.div
@@ -830,8 +862,11 @@ export default function VoiceChatPage() {
 
             {/* Connected State Background Circle */}
             {(!isCallActive || liveStatus === 'connected') && (
-              <div className="absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
+              <div className="absolute w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full bg-[#7CBD00]/10 blur-xl pointer-events-none" />
             )}
+
+            {/* Subtle Floating Particles */}
+            <FloatingParticles />
 
             {/* Main Mascot Image */}
             <motion.div
@@ -839,7 +874,7 @@ export default function VoiceChatPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center"
+              className="relative w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] flex items-center justify-center"
             >
               <img
                 src={getMascotAsset()}
@@ -855,7 +890,11 @@ export default function VoiceChatPage() {
           <div className="text-center space-y-1 mt-2 sm:mt-4 mb-1 sm:mb-2">
             <h2 className="text-lg sm:text-xl font-extrabold text-[#22C55E] tracking-tight">{getStatusTitle()}</h2>
             {(!isCallActive || liveStatus === 'connected') && (
-              <p className="text-xs text-gray-500 font-semibold">Maraki AI is ready to talk with you</p>
+              <p className="text-xs text-gray-500 font-semibold">
+                {!isCallActive 
+                  ? "Tap Call and let's improve your English together." 
+                  : "Maraki AI is ready to talk with you"}
+              </p>
             )}
           </div>
 
@@ -888,9 +927,11 @@ export default function VoiceChatPage() {
           </div>
 
           {/* Live Call Duration Timer */}
-          <div className="text-gray-400 font-mono text-xs font-bold tracking-wider mt-1">
-            {formatTimer(callDuration)}
-          </div>
+          {isCallActive && (
+            <div className="text-gray-400 font-mono text-xs font-bold tracking-wider mt-1">
+              {formatTimer(callDuration)}
+            </div>
+          )}
         </div>
 
         {/* Sliding Transcript Drawer Sheet */}
@@ -991,11 +1032,35 @@ export default function VoiceChatPage() {
                 </span>
               </div>
 
+              {/* 1.5. Record Button */}
+              <div className="flex flex-col items-center gap-1 w-14">
+                <button
+                  disabled={!isCallActive}
+                  onClick={() => setIsRecording(!isRecording)}
+                  className={cn(
+                    'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
+                    !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
+                    isCallActive && isRecording
+                      ? 'border-red-500/40 bg-red-50 text-red-500 animate-pulse'
+                      : isCallActive && !isRecording
+                      ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      : 'text-gray-400',
+                  )}
+                  aria-label="Record conversation"
+                >
+                  <Disc className={cn("w-5 h-5", !isCallActive ? "text-gray-400" : isRecording ? "text-red-500" : "text-gray-700")} />
+                </button>
+                <span className={cn(
+                  "text-[10px] font-semibold animate-fadeIn",
+                  !isCallActive ? "text-gray-300" : "text-gray-500"
+                )}>Record</span>
+              </div>
+
               {/* 2. Mute Button Placeholder/Container (Now in Center) */}
               <div className="flex flex-col items-center gap-1 w-14">
-                {isCallActive && (
                   <>
                     <button
+                      disabled={!isCallActive}
                       onClick={() => {
                         const newMutedState = !isMuted;
                         setIsMuted(newMutedState);
@@ -1005,21 +1070,26 @@ export default function VoiceChatPage() {
                       }}
                       className={cn(
                         'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
-                        isMuted
+                        !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
+                        isCallActive && isMuted
                           ? 'border-red-500/40 bg-red-50 text-red-500'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                          : isCallActive && !isMuted
+                          ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          : 'text-gray-400',
                       )}
                       aria-label="Mute microphone"
                     >
-                      {isMuted ? (
+                      {isMuted && isCallActive ? (
                         <MicOff className="w-5 h-5 text-red-500" />
                       ) : (
-                        <Mic className="w-5 h-5 text-gray-700 stroke-[2.2]" />
+                        <Mic className={cn("w-5 h-5 stroke-[2.2]", !isCallActive ? "text-gray-400" : "text-gray-700")} />
                       )}
                     </button>
-                    <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">Mute</span>
+                    <span className={cn(
+                      "text-[10px] font-semibold animate-fadeIn",
+                      !isCallActive ? "text-gray-300" : "text-gray-500"
+                    )}>Mute</span>
                   </>
-                )}
               </div>
 
               {/* 3. Text / Chat Mode Toggle Button */}
