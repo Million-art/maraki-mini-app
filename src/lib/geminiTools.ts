@@ -155,7 +155,7 @@ export class ReportGrammarMistakeTool extends FunctionCallDefinition {
   constructor() {
     super(
       'report_grammar_mistake',
-      'Reports a grammar, pronunciation, or phrasing mistake made by the user. Must be called before continuing the conversation.',
+      'Reports a grammar, pronunciation, or phrasing mistake made by the user. Must be called before continuing the conversation. IMPORTANT: DO NOT call this if the user is just pausing, thinking, or if the sentence is incomplete (e.g. "I think I..."). ONLY correct full, completed thoughts.',
       {
         type: 'object',
         properties: {

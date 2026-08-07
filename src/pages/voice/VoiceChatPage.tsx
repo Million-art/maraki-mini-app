@@ -351,8 +351,8 @@ export default function VoiceChatPage() {
     if (telegramId) {
       try {
         const profileRes: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
-        if (profileRes?.data?.systemInstruction) {
-          systemInstruction = profileRes.data.systemInstruction;
+        if (profileRes?.systemInstruction) {
+          systemInstruction = profileRes.systemInstruction;
         }
       } catch (err) {
         console.warn('Failed to fetch coaching profile, using default prompt', err);

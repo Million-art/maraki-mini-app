@@ -60,12 +60,16 @@ export class GeminiLiveService {
         throw new Error('No valid ephemeral token received from server.');
       }
 
-      const defaultInstruction = "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. Wait until they finish speaking, then correct them.";
+      const defaultInstruction = "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. CRITICAL RULE: DO NOT correct incomplete sentences or mid-thought pauses (e.g., 'I think I...'). Wait until they finish their complete thought before correcting them.";
+      
+      const combinedInstruction = this.handlers.systemInstruction 
+        ? `${this.handlers.systemInstruction}\n\n${defaultInstruction}` 
+        : defaultInstruction;
 
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
         tools: defaultGeminiTools,
-        systemInstruction: this.handlers.systemInstruction || defaultInstruction,
+        systemInstruction: combinedInstruction,
         onStatusChange: (status) => {
           if (status === 'connected') {
             this.isConnected = true;
