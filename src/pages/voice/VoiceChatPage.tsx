@@ -137,7 +137,7 @@ export default function VoiceChatPage() {
 
   // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<
-    'disconnected' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'error'
+    'disconnected' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error'
   >('disconnected');
   const [liveError, setLiveError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
@@ -429,12 +429,13 @@ export default function VoiceChatPage() {
 
   const getMascotAsset = () => {
     switch (liveStatus) {
-      case 'connecting':
+      case 'thinking':
         return thinkingMascot;
       case 'listening':
         return listeningMascot;
       case 'speaking':
         return speakingMascot;
+      case 'connecting':
       case 'connected':
       default:
         return connectedMascot;
@@ -443,12 +444,14 @@ export default function VoiceChatPage() {
 
   const getStatusTitle = () => {
     switch (liveStatus) {
-      case 'connecting':
+      case 'thinking':
         return 'Thinking...';
       case 'listening':
         return 'Listening...';
       case 'speaking':
         return 'Speaking...';
+      case 'connecting':
+        return 'Connecting...';
       case 'connected':
       default:
         return 'Connected';
@@ -713,12 +716,7 @@ export default function VoiceChatPage() {
                 className="w-full h-full object-contain drop-shadow-xl select-none"
               />
 
-              {/* Connected State Green Checkmark Badge */}
-              {(!isCallActive || liveStatus === 'connected') && (
-                <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shadow-lg border-2 border-white animate-scaleIn">
-                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 fill-current text-white stroke-[2.5]" />
-                </div>
-              )}
+
             </motion.div>
           </div>
 

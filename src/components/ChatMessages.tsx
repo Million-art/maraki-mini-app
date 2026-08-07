@@ -1,9 +1,8 @@
-// @ts-nocheck
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { computeWordDiff, type DiffToken } from '../utils/strikethrough.util';
 
-interface ChatMessagesProps {
+export interface ChatMessagesProps {
   messages: any[];
   onSpeak?: (text: string, messageId: string) => void;
   onExplain?: (text: string) => void;

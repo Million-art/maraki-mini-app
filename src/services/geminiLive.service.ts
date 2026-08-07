@@ -12,7 +12,7 @@ import {
 import { UsageQueue } from '../utils/usageQueue.util';
 
 export interface LiveSessionHandlers {
-  onStatusChange?: (status: 'connecting' | 'connected' | 'speaking' | 'listening' | 'error' | 'disconnected') => void;
+  onStatusChange?: (status: 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error' | 'disconnected') => void;
   onTranscriptReceived?: (sender: 'user' | 'ai', text: string, isFinal?: boolean) => void;
   onError?: (errMessage: string) => void;
 }
@@ -120,7 +120,7 @@ export class GeminiLiveService {
           break;
 
         case MultimodalLiveResponseType.TURN_COMPLETE:
-          // finished turn
+          this.handlers.onStatusChange?.('listening');
           break;
 
         case MultimodalLiveResponseType.TEXT:
@@ -141,6 +141,9 @@ export class GeminiLiveService {
     try {
       if (!this.streamer) {
         this.streamer = new AudioStreamer(this.client);
+        this.streamer.onVoiceActivity = () => {
+          this.handlers.onStatusChange?.('thinking');
+        };
       }
       await this.streamer.start(micDeviceId);
       this.handlers.onStatusChange?.('listening');

@@ -243,6 +243,8 @@ export class AudioStreamer {
   private mediaStream: MediaStream | null = null;
   private audioSource: MediaStreamAudioSourceNode | null = null;
   public isStreaming: boolean = false;
+  public onVoiceActivity?: () => void;
+  private lastVADTime: number = 0;
   private sampleRate: number = 16000;
 
   constructor(client: GeminiLiveClient) {
@@ -282,6 +284,25 @@ export class AudioStreamer {
             if (!this.isStreaming) return;
             if (event.data.type === 'audio') {
               const inputData: Float32Array = event.data.data;
+              
+              if (this.onVoiceActivity) {
+                let sumSq = 0;
+                // Sample a subset of the array for performance
+                for (let i = 0; i < inputData.length; i += 4) {
+                  sumSq += inputData[i] * inputData[i];
+                }
+                const rms = Math.sqrt(sumSq / (inputData.length / 4));
+                // Simple RMS threshold for voice activity detection
+                if (rms > 0.03) {
+                  const now = Date.now();
+                  // Debounce thinking state updates to once every 500ms
+                  if (now - this.lastVADTime > 500) {
+                    this.onVoiceActivity();
+                    this.lastVADTime = now;
+                  }
+                }
+              }
+
               const pcm16Data = this.convertToPCM16(inputData);
               const base64Audio = this.arrayBufferToBase64(pcm16Data);
               if (this.client.connected) {
