@@ -22,6 +22,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
+import { ApiService, API_ENDPOINTS } from '../../config/api';
 
 import connectedMascot from '../../assets/connected.png';
 import listeningMascot from '../../assets/listening.png';
@@ -271,6 +272,17 @@ export default function VoiceChatPage() {
   // Reset timer when call ends
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
+      // Save Voice Session to backend if it was a real call
+      if (callDuration > 0 && telegramId) {
+        const activeThread = threads.find(t => t.id === activeThreadId);
+        if (activeThread && activeThread.messages.length > 0) {
+          ApiService.post(API_ENDPOINTS.SAVE_VOICE_SESSION, {
+            telegramId: telegramId.toString(),
+            durationSeconds: callDuration,
+            messages: activeThread.messages,
+          }).catch(err => console.error("Failed to save voice session:", err));
+        }
+      }
       setCallDuration(0);
     }
   }, [liveStatus]);

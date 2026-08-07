@@ -89,9 +89,11 @@ export const API_ENDPOINTS = {
   // Payment Verification
   VERIFY_BANK_PAYMENT: '/api/student/verify-payment',
   
-  // AI Voice Practice & Chat
-  VOICE_ANALYZE: '/api/student/voice-analyze',
+  // AI Endpoints
+  CHAT_COMPLETION: '/api/gemini/chat',
+  CHAT_COMPLETION_STREAM: '/api/gemini/chat-stream',
   EPHEMERAL_TOKEN: '/api/gemini/ephemeral-token',
+  SAVE_VOICE_SESSION: '/api/gemini/save-voice-session',
   GEMINI_CHAT: '/api/gemini/chat',
   STUDENTS: '/api/student/usage',
   
