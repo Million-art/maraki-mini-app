@@ -8,6 +8,7 @@ import {
   Trash2,
   PhoneOff,
   Mic,
+  Phone,
   MicOff,
   MessageCircle,
   Plane,
@@ -199,21 +200,67 @@ export default function VoiceChatPage() {
     }
   }, [messages, liveStatus, isTranscriptOpen]);
 
+  const isFullyConnected = liveStatus === 'listening' || liveStatus === 'speaking' || liveStatus === 'thinking';
+
   // Call duration timer effect
   useEffect(() => {
-    if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
-      durationTimerRef.current = setInterval(() => {
+    let timer: any;
+    if (isFullyConnected) {
+      timer = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
-    } else {
-      if (durationTimerRef.current) {
-        clearInterval(durationTimerRef.current);
-        durationTimerRef.current = null;
-      }
-      setCallDuration(0);
     }
     return () => {
-      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      if (timer) clearInterval(timer);
+    };
+  }, [isFullyConnected]);
+
+  // Reset timer when call ends
+  useEffect(() => {
+    if (liveStatus === 'disconnected' || liveStatus === 'error') {
+      setCallDuration(0);
+    }
+  }, [liveStatus]);
+
+  // Phone ringing effect while connecting
+  useEffect(() => {
+    let ringInterval: any;
+    let ringCtx: AudioContext | null = null;
+
+    if (liveStatus === 'connecting') {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      ringCtx = new AudioCtx();
+
+      const playBeep = () => {
+        if (!ringCtx || ringCtx.state === 'closed') return;
+        const osc = ringCtx.createOscillator();
+        const gain = ringCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 425; // Standard phone ring frequency
+
+        gain.gain.setValueAtTime(0, ringCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.1, ringCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.1, ringCtx.currentTime + 1.0);
+        gain.gain.linearRampToValueAtTime(0, ringCtx.currentTime + 1.2);
+
+        osc.connect(gain);
+        gain.connect(ringCtx.destination);
+
+        osc.start(ringCtx.currentTime);
+        osc.stop(ringCtx.currentTime + 1.2);
+      };
+
+      // Play immediately, then every 3 seconds
+      playBeep();
+      ringInterval = setInterval(playBeep, 3000);
+    }
+
+    return () => {
+      if (ringInterval) clearInterval(ringInterval);
+      if (ringCtx && ringCtx.state !== 'closed') {
+        ringCtx.close().catch(() => { });
+      }
     };
   }, [liveStatus]);
 
@@ -535,7 +582,7 @@ export default function VoiceChatPage() {
               </nav>
 
               <div className="p-4 border-t border-gray-100 text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Maraki AI Live v3.5</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Maraki AI</p>
               </div>
             </motion.aside>
           </>
@@ -619,7 +666,7 @@ export default function VoiceChatPage() {
               <MALogo className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Maraki AI Live</h1>
+              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Maraki AI</h1>
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">
                 VOICE & VIDEO COACH
               </span>
@@ -836,71 +883,62 @@ export default function VoiceChatPage() {
         {/* Bottom Call Control Panel (Only visible in Voice mode) */}
         {!isTranscriptOpen && (
           <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
-            <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-6 py-3.5 flex items-center justify-between">
-              {/* 1. Mute Button */}
-              <div className="flex flex-col items-center gap-1">
+            <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-8 py-3.5 flex items-center justify-between">
+              {/* 1. Center Call / End Button (Now on Left) */}
+              <div className="flex flex-col items-center gap-1 w-14">
                 <button
-                  onClick={() => setIsMuted(!isMuted)}
+                  onClick={toggleLiveCall}
                   className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all border',
-                    isMuted
-                      ? 'border-red-500/40 bg-red-50 text-red-500'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                    'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4',
+                    isCallActive
+                      ? 'bg-[#FF3B30] border-red-100 shadow-red-500/30 ring-2 ring-red-500/20'
+                      : 'bg-[#16A34A] border-emerald-100 shadow-green-600/30 ring-2 ring-emerald-500/20'
                   )}
-                  aria-label="Mute microphone"
+                  aria-label={isCallActive ? "End voice call" : "Start voice call"}
                 >
-                  {isMuted ? (
-                    <MicOff className="w-5 h-5 text-red-500" />
+                  {isCallActive ? (
+                    <PhoneOff className="w-6 h-6 text-white stroke-[2.5]" />
                   ) : (
-                    <Mic className="w-5 h-5 text-gray-700 stroke-[2.2]" />
+                    <Phone className="w-6 h-6 text-white stroke-[2.5] fill-current" />
                   )}
                 </button>
-                <span className="text-[10px] font-semibold text-gray-500">Mute</span>
               </div>
 
-              {/* 2. Text / Chat Mode Toggle Button */}
-              <div className="flex flex-col items-center gap-1">
+              {/* 2. Mute Button Placeholder/Container (Now in Center) */}
+              <div className="flex flex-col items-center gap-1 w-14">
+                {isCallActive && (
+                  <>
+                    <button
+                      onClick={() => setIsMuted(!isMuted)}
+                      className={cn(
+                        'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
+                        isMuted
+                          ? 'border-red-500/40 bg-red-50 text-red-500'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                      )}
+                      aria-label="Mute microphone"
+                    >
+                      {isMuted ? (
+                        <MicOff className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <Mic className="w-5 h-5 text-gray-700 stroke-[2.2]" />
+                      )}
+                    </button>
+                    <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">Mute</span>
+                  </>
+                )}
+              </div>
+
+              {/* 3. Text / Chat Mode Toggle Button */}
+              <div className="flex flex-col items-center gap-1 w-14">
                 <button
                   onClick={() => setIsTranscriptOpen(true)}
-                  className="w-11 h-11 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white text-gray-700 hover:border-[#16A34A] hover:text-[#16A34A] active:scale-95"
+                  className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 bg-[#FF5500] border-orange-100 shadow-orange-500/30 ring-2 ring-orange-500/20"
                   aria-label="Toggle text mode"
                   title="Toggle Text Mode"
                 >
-                  <MessageSquare className="w-5 h-5 text-gray-700 stroke-[2.2]" />
+                  <MessageSquare className="w-6 h-6 text-white stroke-[2.5] fill-current" />
                 </button>
-                <span className="text-[10px] font-semibold text-gray-500">Text</span>
-              </div>
-
-              {/* 3. Center Call / Start Button */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  onClick={toggleLiveCall}
-                  className={cn(
-                    'w-15 h-15 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 border-emerald-100 ring-2 ring-emerald-500/20',
-                    isCallActive ? 'bg-[#16A34A] shadow-green-600/30 animate-pulse' : 'bg-[#16A34A] shadow-green-600/30',
-                  )}
-                  aria-label="Start or end voice call"
-                >
-                  <Mic className="w-7 h-7 text-white stroke-[2.5]" />
-                </button>
-              </div>
-
-              {/* 4. End Call Button */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  onClick={toggleLiveCall}
-                  disabled={!isCallActive}
-                  className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95',
-                    isCallActive
-                      ? 'bg-[#FF3B30] text-white shadow-red-500/25 hover:bg-[#E03126] cursor-pointer'
-                      : 'bg-[#FF3B30]/60 text-white cursor-not-allowed opacity-60',
-                  )}
-                  aria-label="End conversation"
-                >
-                  <PhoneOff className="w-5 h-5 text-white" />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-500">End</span>
               </div>
             </div>
           </div>

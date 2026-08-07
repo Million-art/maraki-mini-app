@@ -17,7 +17,7 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
             <Menu className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-lg font-extrabold text-foreground tracking-tight">Maraki AI Live</h1>
+        <h1 className="text-lg font-extrabold text-foreground tracking-tight">Maraki AI</h1>
       </div>
     </header>
   );
