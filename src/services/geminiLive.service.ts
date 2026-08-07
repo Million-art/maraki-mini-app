@@ -16,7 +16,6 @@ export interface LiveSessionHandlers {
   onTranscriptReceived?: (sender: 'user' | 'ai', text: string, isFinal?: boolean) => void;
   onError?: (errMessage: string) => void;
   systemInstruction?: string;
-  textOnly?: boolean;
 }
 
 export class GeminiLiveService {
@@ -41,7 +40,7 @@ export class GeminiLiveService {
     });
   }
 
-  async startSession(options?: { micDeviceId?: string; textOnly?: boolean }): Promise<void> {
+  async startSession(micDeviceId?: string): Promise<void> {
     if (this.isConnected) return;
     this.handlers.onStatusChange?.('connecting');
 
@@ -67,15 +66,12 @@ export class GeminiLiveService {
       this.client = new GeminiLiveClient({
         tools: defaultGeminiTools,
         systemInstruction: this.handlers.systemInstruction || defaultInstruction,
-        responseModalities: (options?.textOnly || this.handlers.textOnly) ? ['TEXT'] : ['AUDIO'],
         onStatusChange: (status) => {
           if (status === 'connected') {
             this.isConnected = true;
             this.sessionStartTime = Date.now();
             this.handlers.onStatusChange?.('connected');
-            if (!options?.textOnly && !this.handlers.textOnly) {
-              this.startMicStreaming(options?.micDeviceId);
-            }
+            this.startMicStreaming(micDeviceId);
           } else if (status === 'disconnected') {
             this.handleDisconnect();
           } else if (status === 'error') {

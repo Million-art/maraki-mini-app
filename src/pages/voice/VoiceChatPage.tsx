@@ -337,7 +337,7 @@ export default function VoiceChatPage() {
   }, []);
 
   // Toggle Live AI Call Session
-  const toggleLiveCall = async ({ textOnly = false }: { textOnly?: boolean } = {}) => {
+  const toggleLiveCall = async () => {
     if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
@@ -361,7 +361,6 @@ export default function VoiceChatPage() {
 
     const service = new GeminiLiveService(telegramId, {
       systemInstruction,
-      textOnly,
       onStatusChange: (status) => {
         setLiveStatus(status);
       },
@@ -396,7 +395,7 @@ export default function VoiceChatPage() {
     });
 
     liveServiceRef.current = service;
-    await service.startSession({ micDeviceId: selectedMicId || undefined, textOnly });
+    service.startSession(selectedMicId || undefined);
   };
 
   const handleSendTextMessage = async () => {
@@ -412,6 +411,8 @@ export default function VoiceChatPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
+    const currentHistory = activeThread?.messages || [];
+
     setThreads((prevThreads) =>
       prevThreads.map((t) => {
         if (t.id === activeThreadId) {
@@ -426,19 +427,103 @@ export default function VoiceChatPage() {
     setIsAiTyping(true);
     setTimeout(() => scrollToBottom(), 50);
 
+    if (liveServiceRef.current && isCallActive) {
+      liveServiceRef.current.sendTextMessage(userText);
+      setIsAiTyping(false);
+      return;
+    }
+
+    const aiMsgId = (Date.now() + 1).toString();
+    let accumulatedText = '';
+    let isMessageAdded = false;
+
     try {
-      if (!liveServiceRef.current || liveStatus === 'disconnected' || liveStatus === 'error') {
-        await toggleLiveCall({ textOnly: true });
+      let baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+      
+      const response = await fetch(`${baseUrl}${API_ENDPOINTS.CHAT_COMPLETION_STREAM}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userText,
+          history: currentHistory,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to connect to real-time chat stream');
       }
 
-      if (liveServiceRef.current) {
-        liveServiceRef.current.sendTextMessage(userText);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.replace('data: ', '').trim();
+            if (!jsonStr) continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              if (data.error) {
+                console.error('Server Stream Error:', data.error);
+                setLiveError(data.error);
+                setIsAiTyping(false);
+                break;
+              }
+              if (data.done) {
+                setIsAiTyping(false);
+                break;
+              }
+              if (data.text) {
+                setIsAiTyping(false);
+                accumulatedText += data.text;
+
+                setThreads((prevThreads) =>
+                  prevThreads.map((t) => {
+                    if (t.id === activeThreadId) {
+                      if (!isMessageAdded) {
+                        isMessageAdded = true;
+                        const aiMsg: Message = {
+                          id: aiMsgId,
+                          sender: 'ai',
+                          originalText: accumulatedText,
+                          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        };
+                        return { ...t, messages: [...t.messages, aiMsg] };
+                      } else {
+                        return {
+                          ...t,
+                          messages: t.messages.map((m) =>
+                            m.id === aiMsgId ? { ...m, originalText: accumulatedText } : m,
+                          ),
+                        };
+                      }
+                    }
+                    return t;
+                  }),
+                );
+                scrollToBottom();
+              }
+            } catch (e) {
+              // ignore partial parse errors
+            }
+          }
+        }
       }
-    } catch (err: any) {
-      console.error('Failed to send text message via Live API:', err);
-      setLiveError(err.message || 'Failed to send message');
-    } finally {
       setIsAiTyping(false);
+    } catch (err: any) {
+      setIsAiTyping(false);
+      console.error('Real-time Stream Error:', err);
+      setLiveError(err?.message || 'Chat stream connection error.');
     }
   };
 
