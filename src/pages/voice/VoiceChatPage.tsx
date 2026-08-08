@@ -22,7 +22,6 @@ import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
 
 import connectedMascot from '../../assets/connected.gif';
-import listeningMascot from '../../assets/listening.png';
 import speakingMascot from '../../assets/speaking.png';
 import thinkingMascot from '../../assets/thinking.gif';
 
@@ -629,9 +628,8 @@ export default function VoiceChatPage() {
   const getMascotAsset = () => {
     switch (liveStatus) {
       case 'thinking':
-        return thinkingMascot;
       case 'listening':
-        return listeningMascot;
+        return thinkingMascot;
       case 'speaking':
         return speakingMascot;
       case 'connecting':
