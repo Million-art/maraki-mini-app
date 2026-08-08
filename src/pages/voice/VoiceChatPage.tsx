@@ -17,6 +17,7 @@ import {
   Disc,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { retrieveLaunchParams } from '@tma.js/sdk';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
@@ -27,7 +28,7 @@ import thinkingMascot from '../../assets/thinking.gif';
 
 declare global {
   interface Window {
-    Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number } } } };
+    Telegram?: any;
   }
 }
 import { GeminiLiveService } from '../../services/geminiLive.service';
@@ -100,6 +101,14 @@ function FloatingParticles() {
 
 export default function VoiceChatPage() {
   useOutletContext<{ isDarkMode: boolean }>();
+
+  let tgUser: any = null;
+  try {
+    const launchParams = retrieveLaunchParams();
+    tgUser = (launchParams.initData as any)?.user || launchParams.tgWebAppData?.user;
+  } catch (e) {
+    console.warn("App is running outside of Telegram");
+  }
 
   // Load threads from local storage
   const [threads, setThreads] = useState<ChatThread[]>(() => {
@@ -194,7 +203,7 @@ export default function VoiceChatPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
   const messages = activeThread?.messages || [];
-  const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 123456789;
+  const telegramId = tgUser?.id || 123456789;
 
   // Sync with localStorage
   useEffect(() => {
@@ -393,9 +402,8 @@ export default function VoiceChatPage() {
           systemInstruction = profileRes.data.systemInstruction;
         }
 
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-        if (systemInstruction && (tgUser as any)?.first_name) {
-          systemInstruction = systemInstruction.replace('the user', (tgUser as any).first_name);
+        if (systemInstruction && tgUser?.firstName) {
+          systemInstruction = systemInstruction.replace('the user', tgUser.firstName);
         }
 
         console.log('🎯 EXTRACTED SYSTEM INSTRUCTION:', systemInstruction);
@@ -825,14 +833,31 @@ export default function VoiceChatPage() {
             </div>
           </div>
 
-          {/* Settings gear button */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
-            title="Audio & Video Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {tgUser && (
+              <div className="flex items-center gap-2 px-1.5 py-1.5 bg-gray-50/80 rounded-full border border-gray-100 shadow-xs animate-fadeIn">
+                {(tgUser.photoUrl || tgUser.photo_url) ? (
+                  <img src={tgUser.photoUrl || tgUser.photo_url} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-[#22C55E]/10 flex items-center justify-center text-[#22C55E] font-bold text-xs">
+                    {(tgUser.firstName || tgUser.first_name || 'U').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs font-bold text-gray-700 max-w-[80px] truncate pr-2">
+                  {tgUser.firstName || tgUser.first_name || tgUser.username || 'User'}
+                </span>
+              </div>
+            )}
+            
+            {/* Settings gear button */}
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
+              title="Audio & Video Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
 
