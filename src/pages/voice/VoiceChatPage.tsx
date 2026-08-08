@@ -12,7 +12,7 @@ import {
   Disc,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { retrieveLaunchParams } from '@tma.js/sdk';
+import { retrieveLaunchParams, postEvent, on } from '@tma.js/sdk';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
@@ -339,6 +339,53 @@ export default function VoiceChatPage() {
     return () => {
       liveServiceRef.current?.endSession();
     };
+  }, []);
+
+  // 2-Minute Freemium Limit Enforcer
+  useEffect(() => {
+    const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
+    if (callDuration >= 120 && isCallActive) {
+      // 1. End the call immediately
+      liveServiceRef.current?.endSession();
+      setLiveStatus('disconnected');
+      
+      // 2. Open the Telegram upgrade popup
+      try {
+        postEvent('web_app_open_popup', {
+          title: 'Free Preview Ended',
+          message: 'You have reached your 2-minute limit. Upgrade to Premium to continue your practice session!',
+          buttons: [
+            { id: 'upgrade', type: 'default', text: 'Upgrade to Premium' },
+            { id: 'close', type: 'cancel' }
+          ]
+        });
+      } catch (err) {
+        console.error('Failed to open popup', err);
+      }
+    }
+  }, [callDuration, liveStatus]);
+
+  // Handle Popup Close Events
+  useEffect(() => {
+    try {
+      const off = on('popup_closed', (payload) => {
+        if (payload?.button_id === 'upgrade') {
+          const botUsername = import.meta.env.VITE_BOT_USERNAME || 'marakiai_bot';
+          
+          // Use internal deep link payload: /resolve?domain=bot_username&start=pay
+          const deepLinkPath = `/resolve?domain=${botUsername}&start=pay`;
+          
+          // Open the bot link and close the Mini App
+          postEvent('web_app_open_tg_link', { path_full: deepLinkPath });
+          postEvent('web_app_close');
+        }
+      });
+      return () => {
+        off();
+      };
+    } catch (err) {
+      // Will fail in local dev environment outside Telegram
+    }
   }, []);
 
   // Toggle Live AI Call Session
@@ -845,11 +892,14 @@ export default function VoiceChatPage() {
           <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
             <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-8 py-3.5 flex items-center justify-between">
               {/* 1. Center Call / End Button (Now on Left) */}
-              <div className="flex flex-col items-center gap-1 w-14">
+              <div className="flex flex-col items-center gap-1 w-14 relative">
+                {!isCallActive && (
+                  <div className="absolute top-0 w-14 h-14 rounded-full bg-[#16A34A] animate-ping opacity-40 pointer-events-none" />
+                )}
                 <button
                   onClick={() => toggleLiveCall()}
                   className={cn(
-                    'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4',
+                    'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 relative z-10',
                     isCallActive
                       ? 'bg-[#FF3B30] border-red-100 shadow-red-500/30 ring-2 ring-red-500/20'
                       : 'bg-[#16A34A] border-emerald-100 shadow-green-600/30 ring-2 ring-emerald-500/20'
