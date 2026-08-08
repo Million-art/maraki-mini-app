@@ -30,6 +30,10 @@ try {
   init();
   // Forces the app to expand to maximum height
   postEvent('web_app_expand');
+  // Prevent accidental closure during a voice session by prompting the user
+  postEvent('web_app_setup_closing_behavior', { need_confirmation: true });
+  // Disable vertical swipe to prevent accidentally docking/closing the app when scrolling or dragging
+  postEvent('web_app_setup_swipe_behavior', { allow_vertical_swipe: false });
 } catch (e) {
   console.error('Telegram SDK initialization failed:', e);
 }

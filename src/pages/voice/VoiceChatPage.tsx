@@ -10,10 +10,8 @@ import {
   Mic,
   Phone,
   MicOff,
-  Menu,
   MessageSquare,
   Send,
-  Settings,
   Disc,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -151,9 +149,7 @@ export default function VoiceChatPage() {
     return threads[0]?.id || '';
   });
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
@@ -667,161 +663,15 @@ export default function VoiceChatPage() {
 
   return (
     <div className="flex h-full bg-white text-gray-900 font-sans select-none overflow-hidden w-full relative">
-      {/* Session Drawer Sidebar */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-            />
-
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 240 }}
-              className="fixed inset-y-0 left-0 w-80 bg-white border-r border-gray-200 flex flex-col z-50 h-full shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-gray-700 hover:text-black hover:bg-gray-100 font-bold text-xs transition-all border border-gray-200"
-                >
-                  <ArrowLeft className="w-4 h-4 text-black" />
-                  <span>Back</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-xs">
-                    <MALogo className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="font-extrabold text-sm text-gray-900 leading-none">Maraki AI</h2>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <button
-                  onClick={handleNewSession}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#FC4A01] text-white font-bold text-sm hover:bg-[#E64200] active:scale-98 transition-all shadow-md shadow-[#FC4A01]/25"
-                >
-                  <Plus className="h-4 w-4" /> New Practice Session
-                </button>
-              </div>
-
-              <nav className="flex-1 overflow-y-auto no-scrollbar px-3 space-y-1.5 pb-4">
-                {threads.map((thread) => (
-                  <div
-                    key={thread.id}
-                    onClick={() => {
-                      setActiveThreadId(thread.id);
-                      setIsSidebarOpen(false);
-                    }}
-                    className={cn(
-                      'group flex items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all cursor-pointer border',
-                      thread.id === activeThreadId
-                        ? 'bg-[#FC4A01]/10 border-[#FC4A01]/30 text-[#FC4A01] shadow-xs'
-                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900',
-                    )}
-                  >
-                    <span className="truncate flex-1 pr-2">{thread.title}</span>
-                    <button
-                      aria-label={`Delete ${thread.title}`}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-gray-100 transition-all"
-                      onClick={(e) => handleDeleteSession(thread.id, e)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </nav>
-
-              <div className="p-4 border-t border-gray-100 text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Maraki AI</p>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Settings Modal */}
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsOpen(false)}
-              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-xs"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-white rounded-3xl p-6 z-50 shadow-2xl border border-gray-100 space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-gray-700" />
-                  <h3 className="font-extrabold text-base text-gray-900">Audio & Video Settings</h3>
-                </div>
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="p-1 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Microphone Selection */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Microphone</label>
-                <select
-                  value={selectedMicId}
-                  onChange={(e) => setSelectedMicId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FC4A01] bg-gray-50"
-                >
-                  <option value="">Default Microphone</option>
-                  {audioDevices.map((dev) => (
-                    <option key={dev.deviceId} value={dev.deviceId}>
-                      {dev.label || `Microphone (${dev.deviceId.slice(0, 8)})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
 
-              <div className="pt-2">
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="w-full py-2.5 rounded-xl bg-[#FC4A01] text-white font-bold text-sm hover:bg-[#E64200] transition-colors"
-                >
-                  Save Settings
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+
 
       {/* Main App Container */}
       <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white">
         {/* Top Header Bar */}
         <header className="px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
-              aria-label="Open sidebar menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
             <div className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-xs">
               <MALogo className="w-7 h-7" />
             </div>
@@ -835,7 +685,10 @@ export default function VoiceChatPage() {
 
           <div className="flex items-center gap-2">
             {tgUser && (
-              <div className="flex items-center gap-2 px-1.5 py-1.5 bg-gray-50/80 rounded-full border border-gray-100 shadow-xs animate-fadeIn">
+              <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50/80 rounded-full border border-gray-100 shadow-xs animate-fadeIn">
+                <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate pl-1">
+                  {tgUser.firstName || tgUser.first_name || tgUser.username || 'User'}
+                </span>
                 {(tgUser.photoUrl || tgUser.photo_url) ? (
                   <img src={tgUser.photoUrl || tgUser.photo_url} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
                 ) : (
@@ -843,20 +696,8 @@ export default function VoiceChatPage() {
                     {(tgUser.firstName || tgUser.first_name || 'U').charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-bold text-gray-700 max-w-[80px] truncate pr-2">
-                  {tgUser.firstName || tgUser.first_name || tgUser.username || 'User'}
-                </span>
               </div>
             )}
-            
-            {/* Settings gear button */}
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
-              title="Audio & Video Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
           </div>
         </header>
 
