@@ -21,10 +21,10 @@ import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
 
-import connectedMascot from '../../assets/connected.png';
+import connectedMascot from '../../assets/connected.gif';
 import listeningMascot from '../../assets/listening.png';
 import speakingMascot from '../../assets/speaking.png';
-import thinkingMascot from '../../assets/thinking.png';
+import thinkingMascot from '../../assets/thinking.gif';
 
 declare global {
   interface Window {
@@ -225,14 +225,14 @@ export default function VoiceChatPage() {
   useEffect(() => {
     const handleGrammarMistake = (e: any) => {
       const data = e.detail;
-      
+
       setThreads((prevThreads) =>
         prevThreads.map((t) => {
           if (t.id === activeThreadId) {
             // Find the last user message to update
             const messages = [...t.messages];
             const lastUserMsgIndex = [...messages].reverse().findIndex(m => m.sender === 'user');
-            
+
             if (lastUserMsgIndex !== -1) {
               const actualIndex = messages.length - 1 - lastUserMsgIndex;
               messages[actualIndex] = {
@@ -387,7 +387,7 @@ export default function VoiceChatPage() {
       try {
         const profileRes: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
         console.log('🚀 RAW PROFILE FETCH RESPONSE:', profileRes);
-        
+
         if (profileRes?.systemInstruction) {
           systemInstruction = profileRes.systemInstruction;
         } else if (profileRes?.data?.systemInstruction) {
@@ -398,7 +398,7 @@ export default function VoiceChatPage() {
         if (systemInstruction && (tgUser as any)?.first_name) {
           systemInstruction = systemInstruction.replace('the user', (tgUser as any).first_name);
         }
-        
+
         console.log('🎯 EXTRACTED SYSTEM INSTRUCTION:', systemInstruction);
       } catch (err) {
         console.warn('Failed to fetch coaching profile, using default prompt', err);
@@ -418,7 +418,7 @@ export default function VoiceChatPage() {
           prevThreads.map((t) => {
             if (t.id === activeThreadId) {
               const lastMsg = t.messages[t.messages.length - 1];
-              
+
               // If the last message is from the same sender, append to it
               if (lastMsg && lastMsg.sender === sender) {
                 const updatedMsg = { ...lastMsg, originalText: lastMsg.originalText + text };
@@ -500,7 +500,7 @@ export default function VoiceChatPage() {
       if (baseUrl.endsWith('/')) {
         baseUrl = baseUrl.slice(0, -1);
       }
-      
+
       const response = await fetch(`${baseUrl}${API_ENDPOINTS.CHAT_COMPLETION_STREAM}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -916,8 +916,8 @@ export default function VoiceChatPage() {
             <h2 className="text-lg sm:text-xl font-extrabold text-[#22C55E] tracking-tight">{getStatusTitle()}</h2>
             {(!isCallActive || liveStatus === 'connected') && (
               <p className="text-xs text-gray-500 font-semibold">
-                {!isCallActive 
-                  ? "Tap Call and let's improve your English together." 
+                {!isCallActive
+                  ? "Tap Call and let's improve your English together."
                   : "Maraki AI is ready to talk with you"}
               </p>
             )}
@@ -1068,8 +1068,8 @@ export default function VoiceChatPage() {
                     isCallActive && isRecording
                       ? 'border-red-500/40 bg-red-50 text-red-500 animate-pulse'
                       : isCallActive && !isRecording
-                      ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      : 'text-gray-400',
+                        ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        : 'text-gray-400',
                   )}
                   aria-label="Record conversation"
                 >
@@ -1083,38 +1083,38 @@ export default function VoiceChatPage() {
 
               {/* 2. Mute Button Placeholder/Container (Now in Center) */}
               <div className="flex flex-col items-center gap-1 w-14">
-                  <>
-                    <button
-                      disabled={!isCallActive}
-                      onClick={() => {
-                        const newMutedState = !isMuted;
-                        setIsMuted(newMutedState);
-                        if (liveServiceRef.current) {
-                          liveServiceRef.current.setMuted(newMutedState);
-                        }
-                      }}
-                      className={cn(
-                        'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
-                        !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
-                        isCallActive && isMuted
-                          ? 'border-red-500/40 bg-red-50 text-red-500'
-                          : isCallActive && !isMuted
+                <>
+                  <button
+                    disabled={!isCallActive}
+                    onClick={() => {
+                      const newMutedState = !isMuted;
+                      setIsMuted(newMutedState);
+                      if (liveServiceRef.current) {
+                        liveServiceRef.current.setMuted(newMutedState);
+                      }
+                    }}
+                    className={cn(
+                      'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
+                      !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
+                      isCallActive && isMuted
+                        ? 'border-red-500/40 bg-red-50 text-red-500'
+                        : isCallActive && !isMuted
                           ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                           : 'text-gray-400',
-                      )}
-                      aria-label="Mute microphone"
-                    >
-                      {isMuted && isCallActive ? (
-                        <MicOff className="w-5 h-5 text-red-500" />
-                      ) : (
-                        <Mic className={cn("w-5 h-5 stroke-[2.2]", !isCallActive ? "text-gray-400" : "text-gray-700")} />
-                      )}
-                    </button>
-                    <span className={cn(
-                      "text-[10px] font-semibold animate-fadeIn",
-                      !isCallActive ? "text-gray-300" : "text-gray-500"
-                    )}>Mute</span>
-                  </>
+                    )}
+                    aria-label="Mute microphone"
+                  >
+                    {isMuted && isCallActive ? (
+                      <MicOff className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Mic className={cn("w-5 h-5 stroke-[2.2]", !isCallActive ? "text-gray-400" : "text-gray-700")} />
+                    )}
+                  </button>
+                  <span className={cn(
+                    "text-[10px] font-semibold animate-fadeIn",
+                    !isCallActive ? "text-gray-300" : "text-gray-500"
+                  )}>Mute</span>
+                </>
               </div>
 
               {/* 3. Text / Chat Mode Toggle Button */}
