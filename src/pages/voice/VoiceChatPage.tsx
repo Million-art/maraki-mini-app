@@ -3,9 +3,6 @@ import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  ArrowLeft,
-  Plus,
-  Trash2,
   PhoneOff,
   Mic,
   Phone,
@@ -52,20 +49,7 @@ interface ChatThread {
   createdTime: number;
 }
 
-// Stylized MA Logo (Green M, Orange A)
-function MALogo({ className = 'w-10 h-10' }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'relative flex items-center justify-center font-black tracking-tighter text-xl leading-none select-none',
-        className,
-      )}
-    >
-      <span className="text-[#7CBD00]">M</span>
-      <span className="text-[#FF5500] -ml-1">A</span>
-    </div>
-  );
-}
+
 
 function FloatingParticles() {
   const particles = useMemo(() => {
@@ -139,7 +123,7 @@ export default function VoiceChatPage() {
     ];
   });
 
-  const [activeThreadId, setActiveThreadId] = useState<string>(() => {
+  const [activeThreadId] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('maraki_active_thread_id');
       if (saved) return saved;
@@ -157,8 +141,6 @@ export default function VoiceChatPage() {
   // Audio Controls & Devices
   const [isMuted, setIsMuted] = useState(false);
   // Audio Controls & Devices
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedMicId, setSelectedMicId] = useState<string>('');
 
   // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<
@@ -175,8 +157,7 @@ export default function VoiceChatPage() {
   useEffect(() => {
     async function loadDevices() {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        setAudioDevices(devices.filter((d) => d.kind === 'audioinput'));
+        await navigator.mediaDevices.enumerateDevices();
       } catch (err) {
         console.error('Failed to enumerate media devices:', err);
       }
@@ -456,7 +437,7 @@ export default function VoiceChatPage() {
     });
 
     liveServiceRef.current = service;
-    service.startSession(selectedMicId || undefined);
+    service.startSession(undefined);
   };
 
   const handleSendTextMessage = async () => {
@@ -594,39 +575,6 @@ export default function VoiceChatPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleNewSession = () => {
-    const newId = Date.now().toString();
-    const newThread: ChatThread = {
-      id: newId,
-      title: `Session ${threads.length + 1}`,
-      createdTime: Date.now(),
-      messages: [
-        {
-          id: '1',
-          sender: 'ai',
-          originalText: '👋 Welcome to a new live call session! Tap the mic button to speak.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
-    };
-    setThreads((prev) => [newThread, ...prev]);
-    setActiveThreadId(newId);
-    setIsSidebarOpen(false);
-  };
-
-  const handleDeleteSession = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (threads.length <= 1) {
-      alert('You must keep at least one practice session.');
-      return;
-    }
-    const filtered = threads.filter((t) => t.id !== id);
-    setThreads(filtered);
-    if (activeThreadId === id) {
-      setActiveThreadId(filtered[0].id);
-    }
-  };
-
   const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
 
   const getMascotAsset = () => {
@@ -672,13 +620,11 @@ export default function VoiceChatPage() {
         {/* Top Header Bar */}
         <header className="px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-xs">
-              <MALogo className="w-7 h-7" />
-            </div>
+
             <div>
               <h1 className="font-extrabold text-base text-gray-900 leading-tight">Maraki AI</h1>
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">
-                VOICE & VIDEO COACH
+                VOICE COACH
               </span>
             </div>
           </div>
