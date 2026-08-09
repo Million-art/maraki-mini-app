@@ -34,29 +34,38 @@ export async function buildSessionInstruction(
 ): Promise<{ systemInstruction: string; lesson: LessonPlan }> {
   let profile: CoachingProfile = {};
 
-  // 1. Fetch coaching profile from backend
+  // 1. Fetch coaching profile from backend (GET only — no POST endpoint exists)
   try {
     const res: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
-    profile = res?.data || res || {};
+    // The backend returns { systemInstruction } but we extract structured fields from StudentUser
+    // Pull level from the response (backend returns it inside the user object or at root)
+    const raw = res?.data || res || {};
+    profile.level = raw.level || raw.user?.level;
+    profile.nativeLanguage = raw.nativeLanguage || raw.user?.nativeLanguage;
+    profile.weaknesses = raw.weaknesses || raw.user?.weaknesses;
+    profile.vocabularyCount = raw.vocabularyCount || raw.user?.vocabularyCount;
+    profile.currentStreak = raw.currentStreak || raw.user?.currentStreak;
+    profile.lastSessionDate = raw.lastSessionDate || raw.user?.lastSessionDate;
   } catch (err) {
     console.warn('[Orchestrator] Could not fetch coaching profile, using defaults.', err);
   }
 
-  // 2. Select today's lesson, avoiding the last one used
-  const level = profile.level || 'A2';
-  const lesson = selectLesson(level, profile.lastLessonId);
+  // 2. Read lastLessonId from localStorage (no backend field for this yet)
+  const localStorageKey = `maraki_last_lesson_${telegramId}`;
+  const lastLessonId = localStorage.getItem(localStorageKey);
 
-  // 3. Persist the selected lesson back to the server (non-blocking)
+  // 3. Select today's lesson, avoiding the last one used
+  const level = profile.level || 'A2';
+  const lesson = selectLesson(level, lastLessonId);
+
+  // 4. Persist the selected lesson locally (non-blocking)
   try {
-    await ApiService.post(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()), {
-      lastLessonId: lesson.id,
-      lastLesson: lesson.topic,
-    });
-  } catch (err) {
-    console.warn('[Orchestrator] Could not save last lesson to server.', err);
+    localStorage.setItem(localStorageKey, lesson.id);
+  } catch (e) {
+    // storage quota exceeded — ignore
   }
 
-  // 4. Build the full system instruction
+  // 5. Build the full system instruction
   const systemInstruction = buildPrompt(userName, profile, lesson);
 
   return { systemInstruction, lesson };
