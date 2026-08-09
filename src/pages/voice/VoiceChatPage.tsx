@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { retrieveLaunchParams, postEvent, on } from '@tma.js/sdk';
+import { buildSessionInstruction } from '../../services/coachingOrchestrator';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
@@ -147,6 +148,7 @@ export default function VoiceChatPage() {
     'disconnected' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error'
   >('disconnected');
   const [liveError, setLiveError] = useState<string | null>(null);
+  const [sessionTopic, setSessionTopic] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
 
@@ -412,28 +414,20 @@ export default function VoiceChatPage() {
     }
 
     setLiveError(null);
-    setLiveStatus('connecting'); // Show connecting state immediately while fetching profile
+    setLiveStatus('connecting'); // Show connecting state immediately
 
-    let systemInstruction = undefined;
-    if (telegramId) {
-      try {
-        const profileRes: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
-        console.log('🚀 RAW PROFILE FETCH RESPONSE:', profileRes);
-
-        if (profileRes?.systemInstruction) {
-          systemInstruction = profileRes.systemInstruction;
-        } else if (profileRes?.data?.systemInstruction) {
-          systemInstruction = profileRes.data.systemInstruction;
-        }
-
-        if (systemInstruction && tgUser?.firstName) {
-          systemInstruction = systemInstruction.replace('the user', tgUser.firstName);
-        }
-
-        console.log('🎯 EXTRACTED SYSTEM INSTRUCTION:', systemInstruction);
-      } catch (err) {
-        console.warn('Failed to fetch coaching profile, using default prompt', err);
-      }
+    let systemInstruction: string | undefined = undefined;
+    try {
+      const userName = tgUser?.firstName || tgUser?.first_name || tgUser?.username || 'there';
+      const { systemInstruction: instruction, lesson } = await buildSessionInstruction(
+        telegramId,
+        userName,
+      );
+      systemInstruction = instruction;
+      setSessionTopic(lesson.topic);
+      console.log(`[Orchestrator] Today's lesson: ${lesson.topic} (${lesson.level})`);
+    } catch (err) {
+      console.warn('[Orchestrator] Failed to build session instruction, using default.', err);
     }
 
     const service = new GeminiLiveService(telegramId, {
@@ -771,12 +765,24 @@ export default function VoiceChatPage() {
           {/* Status Display Text */}
           <div className="text-center space-y-1 mt-2 sm:mt-4 mb-1 sm:mb-2">
             <h2 className="text-lg sm:text-xl font-extrabold text-[#22C55E] tracking-tight">{getStatusTitle()}</h2>
-            {(!isCallActive || liveStatus === 'connected') && (
+            {liveStatus === 'connecting' && (
+              <p className="text-xs text-gray-500 font-semibold animate-pulse">Preparing your session...</p>
+            )}
+            {liveStatus !== 'connecting' && (!isCallActive || liveStatus === 'connected') && (
               <p className="text-xs text-gray-500 font-semibold">
                 {!isCallActive
                   ? "Tap Call and let's improve your English together."
                   : "Maraki AI is ready to talk with you"}
               </p>
+            )}
+            {/* Today's lesson badge — shown when session is active */}
+            {isCallActive && sessionTopic && liveStatus !== 'connecting' && (
+              <div className="inline-flex items-center gap-1.5 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-full px-3 py-1 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                <span className="text-[10px] font-bold text-[#16A34A] uppercase tracking-wide">
+                  Today: {sessionTopic}
+                </span>
+              </div>
             )}
           </div>
 

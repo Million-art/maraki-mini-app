@@ -60,11 +60,13 @@ export class GeminiLiveService {
         throw new Error('No valid ephemeral token received from server.');
       }
 
-      const defaultInstruction = "You are Maraki AI, an expert, friendly language teacher. If the user makes a grammar, pronunciation, or phrasing mistake, you MUST call the 'report_grammar_mistake' tool to correct them BEFORE you continue the conversation. Do not ignore mistakes. CRITICAL RULE: DO NOT correct incomplete sentences or mid-thought pauses (e.g., 'I think I...'). Wait until they finish their complete thought before correcting them.";
-      
-      const combinedInstruction = this.handlers.systemInstruction 
-        ? `${this.handlers.systemInstruction}\n\n${defaultInstruction}` 
-        : defaultInstruction;
+      // The coaching orchestrator builds a rich, personalized instruction.
+      // If provided, use it exclusively. Fall back to a baseline only if not available.
+      const baselineFallback = "You are Maraki, a warm and expert English speaking coach. Lead the session with a clear lesson goal. If the user makes a grammar mistake, correct it naturally and ask them to try again. Keep your responses short during live voice — 2 to 3 sentences max.";
+
+      const combinedInstruction = this.handlers.systemInstruction
+        ? `${this.handlers.systemInstruction}\n\n## Grammar Correction Rule\nIf the user makes a grammar, pronunciation, or phrasing mistake, correct it once clearly and naturally, then ask them to repeat the correct version. NEVER ignore mistakes. NEVER correct incomplete sentences or mid-thought pauses — wait until they finish their complete thought.`
+        : baselineFallback;
 
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
