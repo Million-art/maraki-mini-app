@@ -17,18 +17,14 @@ import { buildSessionInstruction } from '../../services/coachingOrchestrator';
 import { useGeminiLive } from '../../hooks/useGeminiLive';
 import ChatInput from '../../components/ChatInput';
 import { ApiService, API_ENDPOINTS } from '../../config/api';
+import { GeminiLiveService } from '../../services/geminiLive.service';
+import ChatMessages from '../../components/ChatMessages';
 
 import connectedMascot from '../../assets/connected.gif';
 import speakingMascot from '../../assets/speaking.png';
 import thinkingMascot from '../../assets/thinking.gif';
 
-declare global {
-  interface Window {
-    Telegram?: any;
-  }
-}
-import { GeminiLiveService } from '../../services/geminiLive.service';
-import ChatMessages from '../../components/ChatMessages';
+declare global { interface Window { Telegram?: any } }
 
 interface Message {
   id: string;
@@ -139,9 +135,8 @@ export default function VoiceChatPage() {
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
-  // Audio Controls & Devices
+  // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
-  // Audio Controls & Devices
 
   // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<
@@ -150,10 +145,14 @@ export default function VoiceChatPage() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [sessionTopic, setSessionTopic] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
+  const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
+  // Keep a ref to threads so effects always read the latest value without stale closures
+  const threadsRef = useRef(threads);
+  useEffect(() => { threadsRef.current = threads; }, [threads]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { playText: speakText, stopAudio, playingMessageId, connect } = useGeminiLive();
+  const { playText: speakText, stopAudio, playingMessageId } = useGeminiLive();
 
   // Load available microphones
   useEffect(() => {
@@ -167,10 +166,6 @@ export default function VoiceChatPage() {
     loadDevices();
   }, []);
 
-  // Connect automatically on mount if possible
-  useEffect(() => {
-    connect();
-  }, [connect]);
 
   const handleSpeakClick = (text: string, messageId: string) => {
     if (playingMessageId === messageId) {
@@ -182,7 +177,19 @@ export default function VoiceChatPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
   const messages = activeThread?.messages || [];
+
   const telegramId = tgUser?.id || 123456789;
+
+  // Fetch premium status once the Telegram user ID is known
+  useEffect(() => {
+    if (!telegramId) return;
+    ApiService.get<any>(API_ENDPOINTS.STUDENT_BY_TELEGRAM_ID(telegramId))
+      .then((data) => {
+        const premium = data?.isMarakiPremium || data?.data?.isMarakiPremium || false;
+        setIsPremiumUser(premium);
+      })
+      .catch(() => setIsPremiumUser(false));
+  }, [telegramId]);
 
   // Sync with localStorage
   useEffect(() => {
@@ -276,19 +283,23 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected]);
 
-  // Reset timer when call ends
+  // Save session and reset timer when a call ends for any reason
+  const callDurationRef = useRef(callDuration);
+  useEffect(() => { callDurationRef.current = callDuration; }, [callDuration]);
+
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
-      // Save Voice Session to backend if it was a real call
-      if (callDuration > 0 && telegramId) {
-        const activeThread = threads.find(t => t.id === activeThreadId);
-        if (activeThread && activeThread.messages.length > 0) {
-          ApiService.post(API_ENDPOINTS.SAVE_VOICE_SESSION, {
-            telegramId: telegramId.toString(),
-            durationSeconds: callDuration,
-            messages: activeThread.messages,
-          }).catch(err => console.error("Failed to save voice session:", err));
-        }
+      const duration = callDurationRef.current;
+      // Use threadsRef to get the freshest message data, not the stale closure
+      const latestThread = threadsRef.current.find(t => t.id === activeThreadId);
+      if (duration > 0 && telegramId && latestThread && latestThread.messages.length > 0) {
+        ApiService.post(API_ENDPOINTS.SAVE_VOICE_SESSION, {
+          telegramId: telegramId.toString(),
+          durationSeconds: duration,
+          messages: latestThread.messages,
+        })
+          .then(() => console.log('[Session] Summary saved successfully.'))
+          .catch(err => console.error('[Session] Failed to save voice session summary:', err));
       }
       setCallDuration(0);
     }
@@ -343,14 +354,14 @@ export default function VoiceChatPage() {
     };
   }, []);
 
-  // 2-Minute Freemium Limit Enforcer
+  // 2-Minute Freemium Limit Enforcer (skipped for premium users)
   useEffect(() => {
     const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
-    if (callDuration >= 120 && isCallActive) {
+    if (callDuration >= 120 && isCallActive && !isPremiumUser) {
       // 1. End the call immediately
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
-      
+
       // 2. Open the Telegram upgrade popup
       try {
         postEvent('web_app_open_popup', {
@@ -365,7 +376,7 @@ export default function VoiceChatPage() {
         console.error('Failed to open popup', err);
       }
     }
-  }, [callDuration, liveStatus]);
+  }, [callDuration, liveStatus, isPremiumUser]);
 
   // Handle Popup Close Events
   useEffect(() => {
@@ -375,7 +386,7 @@ export default function VoiceChatPage() {
           const botUsername = import.meta.env.VITE_BOT_USERNAME || 'marakiai_bot';
           
           // Use internal deep link payload: /resolve?domain=bot_username&start=pay
-          const deepLinkPath = `/resolve?domain=${botUsername}&start=pay`;
+          const deepLinkPath = `/${botUsername}?start=pay`;
           
           // Open the bot link and close the Mini App
           postEvent('web_app_open_tg_link', { path_full: deepLinkPath });
@@ -393,23 +404,9 @@ export default function VoiceChatPage() {
   // Toggle Live AI Call Session
   const toggleLiveCall = async () => {
     if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
+      // End the session — the liveStatus useEffect will handle saving the summary
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
-
-      // Trigger backend to save session, which will generate and send the Telegram summary bot message
-      if (telegramId && activeThread && activeThread.messages.length > 0) {
-        try {
-          await ApiService.post('/api/gemini/save-voice-session', {
-            telegramId: telegramId.toString(),
-            durationSeconds: callDuration,
-            messages: activeThread.messages,
-          });
-          console.log('Session saved and summary requested.');
-        } catch (err) {
-          console.error('Failed to save voice session:', err);
-        }
-      }
-
       return;
     }
 
@@ -652,10 +649,6 @@ export default function VoiceChatPage() {
 
   return (
     <div className="flex h-full bg-white text-gray-900 font-sans select-none overflow-hidden w-full relative">
-
-
-
-
       {/* Main App Container */}
       <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white">
         {/* Top Header Bar */}
@@ -757,8 +750,6 @@ export default function VoiceChatPage() {
                 alt="Maraki AI Mascot"
                 className="w-full h-full object-contain drop-shadow-xl select-none"
               />
-
-
             </motion.div>
           </div>
 
