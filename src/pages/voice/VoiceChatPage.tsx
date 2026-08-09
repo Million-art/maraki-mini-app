@@ -702,7 +702,7 @@ export default function VoiceChatPage() {
           )}
 
           {/* Mascot Stage */}
-          <div className="relative flex items-center justify-center w-[22rem] h-[22rem] sm:w-[27rem] sm:h-[27rem] md:w-[32rem] md:h-[32rem] transition-all">
+          <div className="relative flex items-center justify-center w-[16rem] h-[16rem] sm:w-[20rem] sm:h-[20rem] md:w-[24rem] md:h-[24rem] transition-all">
             {/* 1. Speaking State: Expands dynamically with speech */}
             {liveStatus === 'speaking' && (
               <motion.div
@@ -750,7 +750,7 @@ export default function VoiceChatPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-[22rem] h-[22rem] sm:w-[27rem] sm:h-[27rem] md:w-[32rem] md:h-[32rem] flex items-center justify-center"
+              className="relative w-[16rem] h-[16rem] sm:w-[20rem] sm:h-[20rem] md:w-[24rem] md:h-[24rem] flex items-center justify-center"
             >
               <img
                 src={getMascotAsset()}
