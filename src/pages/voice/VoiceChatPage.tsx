@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Send,
   Disc,
+  Crown
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { retrieveLaunchParams, postEvent, on } from '@tma.js/sdk';
@@ -654,10 +655,21 @@ export default function VoiceChatPage() {
         {/* Top Header Bar */}
         <header className="px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-
             <div>
-              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Maraki AI</h1>
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">
+              <h1 className="font-extrabold text-base text-gray-900 leading-tight flex items-center gap-2">
+                Maraki AI
+                {isPremiumUser ? (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded text-[9px] font-bold text-white shadow-sm">
+                    <Crown className="w-3 h-3 text-white" strokeWidth={3} />
+                    <span>PREMIUM</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center px-2 py-0.5 bg-gray-100 rounded border border-gray-200 text-[9px] font-bold text-gray-400">
+                    FREEMIUM
+                  </div>
+                )}
+              </h1>
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mt-0.5">
                 VOICE COACH
               </span>
             </div>
