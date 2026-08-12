@@ -2,17 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { init, postEvent, mockTelegramEnv, retrieveLaunchParams, retrieveRawInitData } from '@tma.js/sdk';
+import { init, postEvent, mockTelegramEnv, retrieveRawInitData, isTMA } from '@tma.js/sdk';
 
-try {
-  // Try to retrieve launch params to check if we are in Telegram
-  retrieveLaunchParams();
-  const rawInitData = retrieveRawInitData();
-  if (rawInitData) {
-    sessionStorage.setItem('tg_init_data', rawInitData);
-  }
-} catch (e) {
-  console.log('App is running outside of Telegram. Mocking Telegram environment...');
+// 1. Mock Telegram Environment ONLY in local development when outside of Telegram
+if (import.meta.env.DEV && !isTMA()) {
+  console.log('App is running outside of Telegram in DEV. Mocking Telegram environment...');
   mockTelegramEnv({
     launchParams: {
       tgWebAppData: new URLSearchParams([
@@ -27,25 +21,28 @@ try {
       tgWebAppPlatform: 'tdesktop',
     },
   });
-  try {
-    const rawInitData = retrieveRawInitData();
-    if (rawInitData) {
-      sessionStorage.setItem('tg_init_data', rawInitData);
-    }
-  } catch (err) {}
 }
 
+// 2. Cache raw initData in sessionStorage if available
 try {
-  // Initializes the Telegram SDK and informs Telegram the app is ready
-  init();
-  // Forces the app to expand to maximum height
-  postEvent('web_app_expand');
-  // Prevent accidental closure during a voice session by prompting the user
-  postEvent('web_app_setup_closing_behavior', { need_confirmation: true });
-  // Disable vertical swipe to prevent accidentally docking/closing the app when scrolling or dragging
-  postEvent('web_app_setup_swipe_behavior', { allow_vertical_swipe: false });
+  const rawInitData = retrieveRawInitData();
+  if (rawInitData) {
+    sessionStorage.setItem('tg_init_data', rawInitData);
+  }
 } catch (e) {
-  console.error('Telegram SDK initialization failed:', e);
+  console.warn('Failed to retrieve Telegram raw init data:', e);
+}
+
+// 3. Initialize Telegram SDK if running in Telegram
+if (isTMA()) {
+  try {
+    init();
+    postEvent('web_app_expand');
+    postEvent('web_app_setup_closing_behavior', { need_confirmation: true });
+    postEvent('web_app_setup_swipe_behavior', { allow_vertical_swipe: false });
+  } catch (e) {
+    console.error('Telegram SDK initialization failed:', e);
+  }
 }
 
 createRoot(document.getElementById('root')!).render(
