@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import { retrieveLaunchParams } from '@tma.js/sdk';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -15,6 +16,16 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
+    // Add raw Telegram WebApp initData if available
+    try {
+      const launchParams = retrieveLaunchParams();
+      if (launchParams && launchParams.initDataRaw) {
+        config.headers['X-Telegram-Init-Data'] = launchParams.initDataRaw;
+      }
+    } catch (e) {
+      // Offline / non-Telegram fallback
+    }
+
     // Add auth token if available
     const token = localStorage.getItem('authToken');
     if (token) {
