@@ -28,12 +28,14 @@ apiClient.interceptors.request.use(
       }
       if (initDataRaw) {
         config.headers['X-Telegram-Init-Data'] = initDataRaw;
+        config.headers['Authorization'] = `tma ${initDataRaw}`;
       }
     } catch (e) {
       try {
         const fallbackInitData = sessionStorage.getItem('tg_init_data');
         if (fallbackInitData) {
           config.headers['X-Telegram-Init-Data'] = fallbackInitData;
+          config.headers['Authorization'] = `tma ${fallbackInitData}`;
         }
       } catch (err) {}
     }
