@@ -355,10 +355,10 @@ export default function VoiceChatPage() {
     };
   }, []);
 
-  // 2-Minute Freemium Limit Enforcer (skipped for premium users)
+  // 5-Minute Freemium Limit Enforcer (skipped for premium users)
   useEffect(() => {
     const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
-    if (callDuration >= 120 && isCallActive && !isPremiumUser) {
+    if (callDuration >= 300 && isCallActive && !isPremiumUser) {
       // 1. End the call immediately
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
@@ -367,7 +367,7 @@ export default function VoiceChatPage() {
       try {
         postEvent('web_app_open_popup', {
           title: 'Free Preview Ended',
-          message: 'You have reached your 2-minute limit. Upgrade to Premium to continue your practice session!',
+          message: 'You have reached your 5-minute limit. Upgrade to Premium to continue your practice session!',
           buttons: [
             { id: 'upgrade', type: 'default', text: 'Upgrade to Premium' },
             { id: 'close', type: 'cancel' }
