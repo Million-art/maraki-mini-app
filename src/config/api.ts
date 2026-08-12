@@ -1,5 +1,4 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { retrieveLaunchParams, retrieveRawInitData } from '@tma.js/sdk';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -16,30 +15,6 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add raw Telegram WebApp initData if available
-    try {
-      let initDataRaw = sessionStorage.getItem('tg_init_data');
-      if (!initDataRaw) {
-        retrieveLaunchParams();
-        initDataRaw = retrieveRawInitData() || null;
-        if (initDataRaw) {
-          sessionStorage.setItem('tg_init_data', initDataRaw);
-        }
-      }
-      if (initDataRaw) {
-        config.headers['X-Telegram-Init-Data'] = initDataRaw;
-        config.headers['Authorization'] = `tma ${initDataRaw}`;
-      }
-    } catch (e) {
-      try {
-        const fallbackInitData = sessionStorage.getItem('tg_init_data');
-        if (fallbackInitData) {
-          config.headers['X-Telegram-Init-Data'] = fallbackInitData;
-          config.headers['Authorization'] = `tma ${fallbackInitData}`;
-        }
-      } catch (err) {}
-    }
-
     // Add auth token if available
     const token = localStorage.getItem('authToken');
     if (token) {
