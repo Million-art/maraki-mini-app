@@ -6,7 +6,10 @@ import { init, postEvent, mockTelegramEnv, retrieveLaunchParams } from '@tma.js/
 
 try {
   // Try to retrieve launch params to check if we are in Telegram
-  retrieveLaunchParams();
+  const launchParams = retrieveLaunchParams();
+  if (launchParams && launchParams.initDataRaw) {
+    sessionStorage.setItem('tg_init_data', launchParams.initDataRaw as string);
+  }
 } catch (e) {
   console.log('App is running outside of Telegram. Mocking Telegram environment...');
   mockTelegramEnv({
@@ -23,6 +26,12 @@ try {
       tgWebAppPlatform: 'tdesktop',
     },
   });
+  try {
+    const launchParams = retrieveLaunchParams();
+    if (launchParams && launchParams.initDataRaw) {
+      sessionStorage.setItem('tg_init_data', launchParams.initDataRaw as string);
+    }
+  } catch (err) {}
 }
 
 try {

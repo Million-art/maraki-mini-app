@@ -18,12 +18,24 @@ apiClient.interceptors.request.use(
   (config) => {
     // Add raw Telegram WebApp initData if available
     try {
-      const launchParams = retrieveLaunchParams();
-      if (launchParams && launchParams.initDataRaw) {
-        config.headers['X-Telegram-Init-Data'] = launchParams.initDataRaw;
+      let initDataRaw = sessionStorage.getItem('tg_init_data');
+      if (!initDataRaw) {
+        const launchParams = retrieveLaunchParams();
+        initDataRaw = (launchParams?.initDataRaw as string) || null;
+        if (initDataRaw) {
+          sessionStorage.setItem('tg_init_data', initDataRaw as string);
+        }
+      }
+      if (initDataRaw) {
+        config.headers['X-Telegram-Init-Data'] = initDataRaw;
       }
     } catch (e) {
-      // Offline / non-Telegram fallback
+      try {
+        const fallbackInitData = sessionStorage.getItem('tg_init_data');
+        if (fallbackInitData) {
+          config.headers['X-Telegram-Init-Data'] = fallbackInitData;
+        }
+      } catch (err) {}
     }
 
     // Add auth token if available
