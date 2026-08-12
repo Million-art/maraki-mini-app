@@ -2,13 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { init, postEvent, mockTelegramEnv, retrieveLaunchParams } from '@tma.js/sdk';
+import { init, postEvent, mockTelegramEnv, retrieveLaunchParams, retrieveRawInitData } from '@tma.js/sdk';
 
 try {
   // Try to retrieve launch params to check if we are in Telegram
-  const launchParams = retrieveLaunchParams();
-  if (launchParams && launchParams.initDataRaw) {
-    sessionStorage.setItem('tg_init_data', launchParams.initDataRaw as string);
+  retrieveLaunchParams();
+  const rawInitData = retrieveRawInitData();
+  if (rawInitData) {
+    sessionStorage.setItem('tg_init_data', rawInitData);
   }
 } catch (e) {
   console.log('App is running outside of Telegram. Mocking Telegram environment...');
@@ -27,9 +28,9 @@ try {
     },
   });
   try {
-    const launchParams = retrieveLaunchParams();
-    if (launchParams && launchParams.initDataRaw) {
-      sessionStorage.setItem('tg_init_data', launchParams.initDataRaw as string);
+    const rawInitData = retrieveRawInitData();
+    if (rawInitData) {
+      sessionStorage.setItem('tg_init_data', rawInitData);
     }
   } catch (err) {}
 }

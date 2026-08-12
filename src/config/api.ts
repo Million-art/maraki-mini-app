@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { retrieveLaunchParams } from '@tma.js/sdk';
+import { retrieveLaunchParams, retrieveRawInitData } from '@tma.js/sdk';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -20,10 +20,10 @@ apiClient.interceptors.request.use(
     try {
       let initDataRaw = sessionStorage.getItem('tg_init_data');
       if (!initDataRaw) {
-        const launchParams = retrieveLaunchParams();
-        initDataRaw = (launchParams?.initDataRaw as string) || null;
+        retrieveLaunchParams();
+        initDataRaw = retrieveRawInitData() || null;
         if (initDataRaw) {
-          sessionStorage.setItem('tg_init_data', initDataRaw as string);
+          sessionStorage.setItem('tg_init_data', initDataRaw);
         }
       }
       if (initDataRaw) {
