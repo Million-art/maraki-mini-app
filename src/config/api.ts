@@ -98,6 +98,9 @@ export const API_ENDPOINTS = {
   GEMINI_CHAT: '/api/gemini/chat',
   STUDENTS: '/api/student/usage',
   
+  // Error Logging
+  LOG_ERROR: '/api/student/log-error',
+  
   // Health
   HEALTH: '/health',
 } as const;

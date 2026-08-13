@@ -472,6 +472,13 @@ export default function VoiceChatPage() {
       onError: (err) => {
         setIsAiTyping(false);
         setLiveError(err);
+        // Auto-report production error to Backend & Admin Telegram
+        ApiService.post(API_ENDPOINTS.LOG_ERROR, {
+          telegramId: telegramId?.toString(),
+          name: tgUser?.firstName || tgUser?.first_name || 'Student',
+          error: err,
+          context: 'VoiceChatPage (Gemini Live)',
+        }).catch(() => {});
       },
     });
 
@@ -603,8 +610,15 @@ export default function VoiceChatPage() {
       setIsAiTyping(false);
     } catch (err: any) {
       setIsAiTyping(false);
+      const errMsg = err?.message || 'Chat stream connection error.';
       console.error('Real-time Stream Error:', err);
-      setLiveError(err?.message || 'Chat stream connection error.');
+      setLiveError(errMsg);
+      ApiService.post(API_ENDPOINTS.LOG_ERROR, {
+        telegramId: telegramId?.toString(),
+        name: tgUser?.firstName || tgUser?.first_name || 'Student',
+        error: errMsg,
+        context: 'VoiceChatPage (Stream)',
+      }).catch(() => {});
     }
   };
 
