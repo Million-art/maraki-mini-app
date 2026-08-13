@@ -698,10 +698,10 @@ export default function VoiceChatPage() {
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
           {/* Live Error Notification */}
           {liveError && (
-            <div className="absolute top-4 inset-x-4 max-w-md mx-auto bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-2xl text-xs flex justify-between items-center shadow-md z-30 animate-fadeIn">
-              <span>⚠️ {liveError}</span>
-              <button onClick={() => setLiveError(null)} className="font-bold underline ml-2">
-                Dismiss
+            <div className="absolute top-4 inset-x-4 max-w-md mx-auto bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-xs shadow-lg z-30 animate-fadeIn flex justify-between items-center">
+              <span className="font-semibold text-[11px] leading-snug">{liveError}</span>
+              <button onClick={() => setLiveError(null)} className="text-amber-600 font-extrabold text-sm ml-2 px-1">
+                ✕
               </button>
             </div>
           )}

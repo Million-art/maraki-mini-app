@@ -84,8 +84,12 @@ export class GeminiLiveClient {
           this.connected = false;
           this.ws = null;
           if (evt.code !== 1000 && evt.code !== 1005) {
-            const reason = evt.reason ? `: ${evt.reason}` : '';
-            this.options.onError?.(`Live call connection closed by server (Code ${evt.code}${reason})`);
+            if (evt.code === 1007 || evt.reason?.includes('location is not supported') || (evt.reason && evt.reason.includes('1007'))) {
+              this.options.onError?.('⚠️ Please turn off your VPN (or disconnect VPN) to start the Live Voice call.');
+            } else {
+              const reason = evt.reason ? `: ${evt.reason}` : '';
+              this.options.onError?.(`Live call connection closed by server (Code ${evt.code}${reason})`);
+            }
           }
           this.options.onStatusChange?.('disconnected');
         };
