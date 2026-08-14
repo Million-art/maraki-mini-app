@@ -471,13 +471,19 @@ export default function VoiceChatPage() {
       },
       onError: (err) => {
         setIsAiTyping(false);
-        setLiveError(err);
+        
+        let userFriendlyErr = err;
+        if (err.includes('1008') || err.includes('denied access') || err.includes('closed by server')) {
+          userFriendlyErr = '🌙 Daily voice practice limit reached. Please come back tomorrow for fresh voice practice! 🚀';
+        }
+        setLiveError(userFriendlyErr);
+
         // Auto-report production error to Backend & Admin Telegram
         ApiService.post(API_ENDPOINTS.LOG_ERROR, {
           telegramId: telegramId?.toString(),
           name: tgUser?.firstName || tgUser?.first_name || 'Student',
           error: err,
-          context: 'VoiceChatPage (Gemini Live)',
+          context: 'VoiceChatPage (Gemini Live API Quota Alert)',
         }).catch(() => {});
       },
     });

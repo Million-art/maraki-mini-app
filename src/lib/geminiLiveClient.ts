@@ -86,6 +86,19 @@ export class GeminiLiveClient {
           if (evt.code !== 1000 && evt.code !== 1005) {
             if (evt.code === 1007 || evt.reason?.includes('location is not supported') || (evt.reason && evt.reason.includes('1007'))) {
               this.options.onError?.('⚠️ Please turn off your VPN (or disconnect VPN) to start the Live Voice call.');
+            } else if (evt.code === 1008 || (evt.reason && (evt.reason.includes('1008') || evt.reason.includes('denied access')))) {
+              // Notify Admin in background
+              const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://dashboard-backend-sigma.vercel.app';
+              fetch(`${backendUrl}/api/student/log-error`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  error: `Gemini Live API WebSocket Closed: Code 1008 (${evt.reason || 'Project denied access / Key quota limit'})`,
+                  context: 'Live Voice Session (Gemini Live API)',
+                }),
+              }).catch(() => {});
+
+              this.options.onError?.('🌙 Daily voice practice server limit reached. Please come back tomorrow for fresh voice practice! 🚀');
             } else {
               const reason = evt.reason ? `: ${evt.reason}` : '';
               this.options.onError?.(`Live call connection closed by server (Code ${evt.code}${reason})`);
