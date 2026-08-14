@@ -160,6 +160,21 @@ export default function VoiceChatPage() {
       window.open(`https://t.me/${botUsername}?start=pay`, '_blank');
     }
   };
+
+  const triggerUpgradePopup = () => {
+    try {
+      postEvent('web_app_open_popup', {
+        title: 'Premium Access Required 🚀',
+        message: 'በተጠቃሚዎች መጨናነቅ ምክንያት Voice Practice ለ Premium ተጠቃሚዎች ብቻ ሆኗል።\n\nDue to high server volume, real-time Voice Practice is currently reserved exclusively for Premium members.',
+        buttons: [
+          { id: 'upgrade', type: 'default', text: '⭐ Upgrade to Premium' },
+          { id: 'close', type: 'cancel' }
+        ]
+      });
+    } catch (err) {
+      setShowPremiumModal(true);
+    }
+  };
   // Keep a ref to threads so effects always read the latest value without stale closures
   const threadsRef = useRef(threads);
   useEffect(() => { threadsRef.current = threads; }, [threads]);
@@ -425,7 +440,7 @@ export default function VoiceChatPage() {
 
     // Real Premium Validation Gate
     if (!isPremiumUser) {
-      setShowPremiumModal(true);
+      triggerUpgradePopup();
       return;
     }
 
