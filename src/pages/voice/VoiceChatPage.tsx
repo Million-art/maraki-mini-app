@@ -215,6 +215,7 @@ export default function VoiceChatPage() {
   }, [messages, liveStatus, isTranscriptOpen]);
 
   const isFullyConnected = liveStatus === 'listening' || liveStatus === 'speaking' || liveStatus === 'thinking';
+  const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error' && !liveError;
 
   // Listen for Grammar Mistakes reported by Gemini Tools
   useEffect(() => {
@@ -274,7 +275,7 @@ export default function VoiceChatPage() {
   // Call duration timer effect
   useEffect(() => {
     let timer: any;
-    if (isFullyConnected) {
+    if (isFullyConnected && !liveError) {
       timer = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
@@ -282,7 +283,7 @@ export default function VoiceChatPage() {
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isFullyConnected]);
+  }, [isFullyConnected, liveError]);
 
   // Save session and reset timer when a call ends for any reason
   const callDurationRef = useRef(callDuration);
@@ -357,7 +358,6 @@ export default function VoiceChatPage() {
 
   // 2-Minute Freemium Limit Enforcer (skipped for premium users)
   useEffect(() => {
-    const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
     if (callDuration >= 120 && isCallActive && !isPremiumUser) {
       // 1. End the call immediately
       liveServiceRef.current?.endSession();
@@ -404,7 +404,7 @@ export default function VoiceChatPage() {
 
   // Toggle Live AI Call Session
   const toggleLiveCall = async () => {
-    if (liveStatus !== 'disconnected' && liveStatus !== 'error') {
+    if (isCallActive) {
       // End the session — the liveStatus useEffect will handle saving the summary
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
@@ -471,6 +471,8 @@ export default function VoiceChatPage() {
       },
       onError: (err) => {
         setIsAiTyping(false);
+        setLiveStatus('error');
+        liveServiceRef.current?.endSession();
         
         let userFriendlyErr = err;
         if (err.includes('1008') || err.includes('denied access') || err.includes('closed by server')) {
@@ -633,8 +635,6 @@ export default function VoiceChatPage() {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error';
 
   const getMascotAsset = () => {
     switch (liveStatus) {
@@ -838,7 +838,7 @@ export default function VoiceChatPage() {
           </div>
 
           {/* Live Call Duration Timer */}
-          {isCallActive && (
+          {isCallActive && !liveError && (
             <div className="text-gray-400 font-mono text-xs font-bold tracking-wider mt-1">
               {formatTimer(callDuration)}
             </div>
