@@ -637,6 +637,9 @@ export default function VoiceChatPage() {
   };
 
   const getMascotAsset = () => {
+    if (liveError || liveStatus === 'error' || liveStatus === 'disconnected') {
+      return connectedMascot;
+    }
     switch (liveStatus) {
       case 'thinking':
       case 'listening':
@@ -651,6 +654,9 @@ export default function VoiceChatPage() {
   };
 
   const getStatusTitle = () => {
+    if (liveError || liveStatus === 'error' || liveStatus === 'disconnected') {
+      return '😊 Ready to practice?';
+    }
     switch (liveStatus) {
       case 'thinking':
         return 'Thinking...';
@@ -662,7 +668,6 @@ export default function VoiceChatPage() {
         return 'Calling...';
       case 'connected':
         return 'Connected';
-      case 'disconnected':
       default:
         return '😊 Ready to practice?';
     }
