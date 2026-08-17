@@ -149,7 +149,6 @@ export default function VoiceChatPage() {
   const [sessionTopic, setSessionTopic] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
-  const [showPremiumModal, setShowPremiumModal] = useState<boolean>(false);
   const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
 
@@ -164,20 +163,7 @@ export default function VoiceChatPage() {
     }
   };
 
-  const triggerUpgradePopup = () => {
-    try {
-      postEvent('web_app_open_popup', {
-        title: 'Premium Access Required 🚀',
-        message: 'በተጠቃሚዎች መጨናነቅ ምክንያት Voice Practice ለ Premium ተጠቃሚዎች ብቻ ሆኗል።\n\nDue to high server volume, real-time Voice Practice is currently reserved exclusively for Premium members.',
-        buttons: [
-          { id: 'upgrade', type: 'default', text: '⭐ Upgrade to Premium' },
-          { id: 'close', type: 'cancel' }
-        ]
-      });
-    } catch (err) {
-      setShowPremiumModal(true);
-    }
-  };
+
   // Keep a ref to threads so effects always read the latest value without stale closures
   const threadsRef = useRef(threads);
   useEffect(() => { threadsRef.current = threads; }, [threads]);
@@ -393,19 +379,8 @@ export default function VoiceChatPage() {
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
 
-      // 2. Open the Telegram upgrade popup
-      try {
-        postEvent('web_app_open_popup', {
-          title: 'Free Preview Ended',
-          message: 'You have reached your 2-minute limit. Upgrade to Premium to continue your practice session!',
-          buttons: [
-            { id: 'upgrade', type: 'default', text: 'Upgrade to Premium' },
-            { id: 'close', type: 'cancel' }
-          ]
-        });
-      } catch (err) {
-        console.error('Failed to open popup', err);
-      }
+      // 2. Open the Video Demo Modal directly
+      setShowDemoModal(true);
     }
   }, [callDuration, liveStatus, isPremiumUser]);
 
@@ -441,9 +416,9 @@ export default function VoiceChatPage() {
       return;
     }
 
-    // Real Premium Validation Gate
+    // Real Premium Validation Gate: Open Demo Video Popup for non-VIP users
     if (!isPremiumUser) {
-      triggerUpgradePopup();
+      setShowDemoModal(true);
       return;
     }
 
@@ -1090,62 +1065,7 @@ export default function VoiceChatPage() {
           </div>
         )}
 
-        {/* Premium Lock Modal */}
-        <AnimatePresence>
-          {showPremiumModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border border-amber-100 flex flex-col items-center space-y-5 relative overflow-hidden"
-              >
-                {/* Background decorative glow */}
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-orange-500/20 rounded-full blur-2xl pointer-events-none" />
 
-                {/* Crown Icon */}
-                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/30 border-2 border-white">
-                  <Crown className="w-8 h-8 text-white stroke-[2.5]" />
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                    Voice Practice is Premium
-                  </h3>
-                  <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 text-xs font-semibold text-amber-900 leading-relaxed shadow-inner">
-                    በተጠቃሚዎች መጨናነቅ ምክንያት Voice Practice ለ <b>Premium</b> ተጠቃሚዎች ብቻ ሆኗል። 🚀
-                  </div>
-                  <p className="text-xs text-gray-500 font-medium px-2">
-                    Due to high server volume, real-time voice coaching is now reserved exclusively for Premium members.
-                  </p>
-                </div>
-
-                <div className="w-full space-y-2.5 pt-2">
-                  <button
-                    onClick={handleUpgradeClick}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-sm shadow-xl shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Crown className="w-4 h-4 fill-current" />
-                    <span>Upgrade to Premium</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowPremiumModal(false)}
-                    className="w-full py-2.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    Maybe Later
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Demo Video Modal for Non-VIP Users */}
         <DemoVideoModal
