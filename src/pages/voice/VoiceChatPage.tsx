@@ -10,8 +10,10 @@ import {
   MessageSquare,
   Send,
   Disc,
-  Crown
+  Crown,
+  Play
 } from 'lucide-react';
+import DemoVideoModal from '../../components/DemoVideoModal';
 import { cn } from '../../lib/utils';
 import { retrieveLaunchParams, postEvent, on } from '@tma.js/sdk';
 import { buildSessionInstruction } from '../../services/coachingOrchestrator';
@@ -148,6 +150,7 @@ export default function VoiceChatPage() {
   const [callDuration, setCallDuration] = useState<number>(0);
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
   const [showPremiumModal, setShowPremiumModal] = useState<boolean>(false);
+  const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
 
   const handleUpgradeClick = () => {
@@ -751,6 +754,33 @@ export default function VoiceChatPage() {
           </div>
         </header>
 
+        {/* Visual Demo Card for Non-VIP Users */}
+        {!isPremiumUser && (
+          <div className="mx-4 my-1.5 p-3 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300/80 rounded-2xl flex items-center justify-between shadow-xs z-20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                </span>
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5 truncate">
+                  🎥 Watch How Voice AI Works
+                </h4>
+                <p className="text-[10px] text-gray-500 font-medium truncate">Tap to see real-time conversation demo</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDemoModal(true)}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-all shrink-0 ml-2"
+            >
+              Watch Demo
+            </button>
+          </div>
+        )}
+
 
         {/* Center Stage Mascot Avatar & Video Preview Stage */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
@@ -1116,6 +1146,16 @@ export default function VoiceChatPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Demo Video Modal for Non-VIP Users */}
+        <DemoVideoModal
+          isOpen={showDemoModal}
+          onClose={() => setShowDemoModal(false)}
+          onUpgrade={() => {
+            setShowDemoModal(false);
+            handleUpgradeClick();
+          }}
+        />
       </div>
     </div>
   );
