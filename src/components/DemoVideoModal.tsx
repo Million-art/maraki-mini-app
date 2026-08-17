@@ -16,7 +16,7 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
   onUpgrade,
   videoUrl = '/demo.mp4',
 }) => {
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -26,10 +26,14 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        videoRef.current.play().then(() => {
+          setIsPlaying(true);
+        }).catch(() => {
+          setIsPlaying(true);
+        });
       }
-      setIsPlaying(!isPlaying);
     } else {
       setIsPlaying(!isPlaying);
     }
@@ -81,7 +85,6 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
               <video
                 ref={videoRef}
                 src={videoUrl}
-                autoPlay
                 playsInline
                 loop
                 muted={isMuted}
@@ -108,30 +111,70 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
               </div>
             )}
 
-            {/* Video Controls Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4 pointer-events-none">
-              <div className="flex justify-end pointer-events-auto">
-                <button
-                  onClick={toggleMute}
-                  className="p-2 rounded-full bg-black/60 backdrop-blur-md text-white/90 hover:text-white hover:bg-black/80 transition-colors"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
+            {/* Play Overlay (Shown when video is paused/not playing yet) */}
+            {!isPlaying && (
+              <div
+                onClick={togglePlay}
+                className="absolute inset-0 z-20 bg-black/50 backdrop-blur-xs flex flex-col items-center justify-center gap-3 cursor-pointer transition-all hover:bg-black/40"
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-ping opacity-30" />
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-2xl shadow-orange-500/40 ring-4 ring-white/30 transition-transform hover:scale-105 active:scale-95">
+                    <Play className="w-7 h-7 fill-current ml-1" />
+                  </div>
+                </div>
+                <span className="text-xs font-black tracking-widest text-white uppercase bg-black/60 px-4 py-1.5 rounded-full border border-white/20 shadow-md">
+                  Play Demo
+                </span>
               </div>
+            )}
 
-              <div className="flex items-center justify-start pointer-events-auto">
-                <button
-                  onClick={togglePlay}
-                  className="p-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg transition-transform active:scale-95"
-                >
-                  {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                </button>
+            {/* Video Controls Overlay (Shown during playback) */}
+            {isPlaying && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4 pointer-events-none z-10">
+                <div className="flex justify-end pointer-events-auto">
+                  <button
+                    onClick={toggleMute}
+                    className="p-2 rounded-full bg-black/60 backdrop-blur-md text-white/90 hover:text-white hover:bg-black/80 transition-colors"
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-start pointer-events-auto">
+                  <button
+                    onClick={togglePlay}
+                    className="p-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg transition-transform active:scale-95 flex items-center gap-1.5 px-3.5"
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Pause className="w-4 h-4 fill-current" />
+                        <span className="text-xs font-bold">Pause</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <span className="text-xs font-bold">Play</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* CTA Button Footer (Pinned to bottom) */}
-          <div className="p-4 sm:p-5 bg-white border-t border-gray-100 shrink-0 pb-8 sm:pb-5">
+          <div className="p-4 sm:p-5 bg-white border-t border-gray-100 shrink-0 pb-8 sm:pb-5 space-y-3">
+            {/* Context Message */}
+            <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3 text-center space-y-1">
+              <p className="text-[11px] font-bold text-amber-900 leading-snug">
+                በተጠቃሚዎች መጨናነቅ ምክንያት Voice Practice ለ <b>Premium</b> ተጠቃሚዎች ብቻ ሆኗል። 🚀
+              </p>
+              <p className="text-[9.5px] font-medium text-amber-700">
+                Due to high volume, Voice AI is reserved exclusively for Premium members.
+              </p>
+            </div>
+
             <button
               onClick={onUpgrade}
               className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs sm:text-sm tracking-wide shadow-xl shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 border border-orange-400/20"
