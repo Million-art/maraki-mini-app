@@ -288,9 +288,9 @@ export function selectLesson(level: string, lastLessonId?: string | null): Lesso
   const available = plans.filter((p) => p.id !== lastLessonId);
   const pool = available.length > 0 ? available : plans;
 
-  // Deterministic daily rotation — same lesson picked all day, changes at midnight
-  const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-  return pool[dayOfYear % pool.length];
+  // Pick a random lesson from the available pool so they get a fresh topic every session
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  return pool[randomIndex];
 }
 
 export function normalizeCEFR(level: string): string {
