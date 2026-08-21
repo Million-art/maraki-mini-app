@@ -825,15 +825,6 @@ export default function VoiceChatPage() {
                   : "Maraki AI is ready to talk with you"}
               </p>
             )}
-            {/* Today's lesson badge — shown when session is active */}
-            {isCallActive && sessionTopic && liveStatus !== 'connecting' && (
-              <div className="inline-flex items-center gap-1.5 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-full px-3 py-1 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-                <span className="text-[10px] font-bold text-[#16A34A] uppercase tracking-wide">
-                  Today: {sessionTopic}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Equalizer Visualizer per Status */}

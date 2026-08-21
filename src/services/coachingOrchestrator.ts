@@ -52,7 +52,7 @@ export async function buildSessionInstruction(
   const systemInstruction = buildPrompt(userName, profile);
 
   // Return a mock lesson object since VoiceChatPage might still expect it
-  const mockLesson = { id: 'dynamic', topic: 'Dynamic AI Conversation', goal: 'Fluid Conversation' };
+  const mockLesson = { id: 'dynamic', topic: 'Live Voice Practice', goal: 'Speak naturally and confidently' };
 
   return { systemInstruction, lesson: mockLesson };
 }
