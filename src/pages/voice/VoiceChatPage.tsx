@@ -437,7 +437,7 @@ export default function VoiceChatPage() {
     let systemInstruction: string | undefined = undefined;
     try {
       const userName = tgUser?.firstName || tgUser?.first_name || tgUser?.username || 'there';
-      const { systemInstruction: instruction, lesson } = await buildSessionInstruction(
+      const { systemInstruction: instruction } = await buildSessionInstruction(
         telegramId,
         userName,
       );
