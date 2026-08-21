@@ -145,7 +145,6 @@ export default function VoiceChatPage() {
     'disconnected' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error'
   >('disconnected');
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [sessionTopic, setSessionTopic] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
   const [liveVoiceSecondsUsed, setLiveVoiceSecondsUsed] = useState<number>(0);
@@ -443,8 +442,7 @@ export default function VoiceChatPage() {
         userName,
       );
       systemInstruction = instruction;
-      setSessionTopic(lesson.topic);
-      console.log(`[Orchestrator] Today's lesson: ${lesson.topic} (${lesson.level})`);
+      console.log(`[Orchestrator] Dynamic coaching prompt loaded.`);
     } catch (err) {
       console.warn('[Orchestrator] Failed to build session instruction, using default.', err);
     }
