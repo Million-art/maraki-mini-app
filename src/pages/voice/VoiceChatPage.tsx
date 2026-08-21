@@ -10,8 +10,7 @@ import {
   MessageSquare,
   Send,
   Disc,
-  Crown,
-  Play
+  Crown
 } from 'lucide-react';
 import DemoVideoModal from '../../components/DemoVideoModal';
 import { cn } from '../../lib/utils';
@@ -311,6 +310,12 @@ export default function VoiceChatPage() {
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
       const duration = callDurationRef.current;
+      
+      // Update local state so they can't exploit stale values to start new calls
+      if (duration > 0 && !isPremiumUser) {
+        setLiveVoiceSecondsUsed((prev) => prev + duration);
+      }
+
       // Use threadsRef to get the freshest message data, not the stale closure
       const latestThread = threadsRef.current.find(t => t.id === activeThreadId);
       if (duration > 0 && telegramId && latestThread && latestThread.messages.length > 0) {
@@ -324,7 +329,7 @@ export default function VoiceChatPage() {
       }
       setCallDuration(0);
     }
-  }, [liveStatus]);
+  }, [liveStatus, isPremiumUser]);
 
   // Phone ringing effect while connecting
   useEffect(() => {
