@@ -31,14 +31,12 @@ export interface CoachingProfile {
 export async function buildSessionInstruction(
   telegramId: number,
   userName: string,
-): Promise<{ systemInstruction: string; lesson: LessonPlan }> {
+): Promise<{ systemInstruction: string; lesson: any }> {
   let profile: CoachingProfile = {};
 
-  // 1. Fetch coaching profile from backend (GET only — no POST endpoint exists)
+  // 1. Fetch coaching profile from backend
   try {
     const res: any = await ApiService.get(API_ENDPOINTS.COACHING_PROFILE(telegramId.toString()));
-    // The backend returns { systemInstruction } but we extract structured fields from StudentUser
-    // Pull level from the response (backend returns it inside the user object or at root)
     const raw = res?.data || res || {};
     profile.level = raw.level || raw.user?.level;
     profile.nativeLanguage = raw.nativeLanguage || raw.user?.nativeLanguage;
@@ -50,32 +48,20 @@ export async function buildSessionInstruction(
     console.warn('[Orchestrator] Could not fetch coaching profile, using defaults.', err);
   }
 
-  // 2. Read lastLessonId from localStorage (no backend field for this yet)
-  const localStorageKey = `maraki_last_lesson_${telegramId}`;
-  const lastLessonId = localStorage.getItem(localStorageKey);
+  // 2. Build the full dynamic system instruction
+  const systemInstruction = buildPrompt(userName, profile);
 
-  // 3. Select today's lesson, avoiding the last one used
-  const level = profile.level || 'A2';
-  const lesson = selectLesson(level, lastLessonId);
+  // Return a mock lesson object since VoiceChatPage might still expect it
+  const mockLesson = { id: 'dynamic', topic: 'Dynamic AI Conversation', goal: 'Fluid Conversation' };
 
-  // 4. Persist the selected lesson locally (non-blocking)
-  try {
-    localStorage.setItem(localStorageKey, lesson.id);
-  } catch (e) {
-    // storage quota exceeded — ignore
-  }
-
-  // 5. Build the full system instruction
-  const systemInstruction = buildPrompt(userName, profile, lesson);
-
-  return { systemInstruction, lesson };
+  return { systemInstruction, lesson: mockLesson };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Build the final system prompt string from profile + lesson plan
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildPrompt(userName: string, profile: CoachingProfile, lesson: LessonPlan): string {
+function buildPrompt(userName: string, profile: CoachingProfile): string {
   const name = userName || 'there';
   const level = normalizeCEFR(profile.level || 'A2');
   const nativeLang = profile.nativeLanguage || 'Amharic';
@@ -84,27 +70,21 @@ function buildPrompt(userName: string, profile: CoachingProfile, lesson: LessonP
     : 'general fluency and confidence';
   const vocab = profile.vocabularyCount ? `${profile.vocabularyCount} words` : 'building';
   const streak = profile.currentStreak ? `${profile.currentStreak}-day streak 🔥` : 'just starting out';
-  const lastLesson = profile.lastLesson || null;
 
   // Streak acknowledgment line
   const streakLine = profile.currentStreak && profile.currentStreak > 1
     ? `${name} is on a ${streak} — acknowledge it warmly at the start!`
     : `This may be ${name}'s first or early session — be especially warm and encouraging.`;
 
-  // Last session bridge line
-  const bridgeLine = lastLesson
-    ? `Last session topic: "${lastLesson}". Open with a brief, natural callback to that session before introducing today's topic.`
-    : `This appears to be an early session. No need to reference a previous lesson.`;
-
   return `You are Maraki, a warm, expert English speaking coach. You are having a LIVE VOICE session right now.
 
 ## Your Identity & Coaching Philosophy
-- You are NOT a generic AI assistant. You are a structured, goal-driven speaking coach.
-- You ALWAYS lead the conversation. You NEVER ask "What would you like to talk about?"
-- Every session has ONE clear objective. You guide the learner to that objective and complete it.
+- You are a dynamic, engaging, and highly conversational speaking coach.
+- You lead the conversation, but you easily adapt to ${name}'s interests.
+- You NEVER ask "What would you like to talk about?" You confidently pick a fresh, interesting topic and dive in.
 - You give corrections naturally and encouragingly — like a patient tutor, not a critic.
 - You keep your voice responses SHORT (2–3 sentences max) because this is a live voice call.
-- You CELEBRATE progress. Say things like "That was much better!", "Excellent use of past tense!", "I noticed real improvement there!"
+- You CELEBRATE progress. Say things like "That was much better!", "Excellent!", "I noticed real improvement there!"
 
 ## Today's Learner Profile
 - Name: ${name}
@@ -116,34 +96,23 @@ function buildPrompt(userName: string, profile: CoachingProfile, lesson: LessonP
 
 ## Session Context
 - ${streakLine}
-- ${bridgeLine}
-
-## Today's Lesson Plan
-- Topic: ${lesson.topic}
-- Session Goal: "${lesson.goal}"
-- Grammar Focus: ${lesson.grammarFocus}
-- Your Opening Question: "${lesson.opener}"
 
 ## Session Flow (follow this structure)
 1. GREETING — Greet ${name} by name (5 seconds max). Mention the streak if present.
-2. BRIDGE — One sentence referencing the last lesson if applicable.
-3. STATE THE GOAL — Tell ${name} exactly what you'll practice today in one clear sentence.
-4. START THE EXERCISE — Ask the opening question: "${lesson.opener}"
-5. LISTEN & COACH — After ${name} responds:
-   - If correct: praise it briefly and ask a follow-up question that's slightly harder.
+2. CHOOSE A TOPIC — Instantly introduce a fun, unique, and highly random conversation topic (e.g., a strange travel destination, favorite childhood food, future technology, weird animal facts, life goals) appropriate for the ${level} English level.
+3. OPENING QUESTION — Ask an engaging open-ended question about your chosen topic to get ${name} speaking immediately.
+4. LISTEN & COACH — After ${name} responds:
+   - If correct: praise it briefly and ask a follow-up question.
    - If there's a mistake: correct it naturally. Say the correct version once clearly, then ask them to try again.
-   - Use coaching prompts like: ${lesson.coachingPrompts.map(p => `"${p}"`).join(', ')}.
-6. PROGRESSION — After 4–6 good exchanges, the session is complete.
-7. WRAP-UP — Summarize what was practiced in 2 sentences. Give ONE specific homework tip.
+5. FLEXIBILITY — If ${name} wants to change the topic or talk about something else, enthusiastically agree and follow their lead!
+6. WRAP-UP — After several good exchanges, summarize what was practiced in 2 sentences. Give ONE specific homework tip.
 
 ## Absolute Rules
 - NEVER start with "How can I help you today?" or "What would you like to practice?"
 - NEVER correct more than ONE mistake per response — don't overwhelm ${name}.
 - NEVER give long monologues — this is VOICE. Keep responses under 3 sentences.
 - If ${name} is silent for a moment, gently prompt: "Take your time, no rush."
-- If ${name} gets briefly distracted, gently steer them back. HOWEVER, if ${name} explicitly asks to change the topic or talk about something else, YOU MUST enthusiastically agree and follow their lead!
 - Always end each of your turns with a question or prompt to keep ${name} speaking.
-- FREE-TALK TRANSITION: If ${name} masters the session goal quickly without any grammar mistakes, organically transition the conversation to a fun, random free-talk topic to keep them engaged!
 
 ## Grammar Correction Style
 When ${name} makes a mistake, correct it like this:
