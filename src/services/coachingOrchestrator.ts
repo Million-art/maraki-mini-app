@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ApiService, API_ENDPOINTS } from '../config/api';
-import { selectLesson, normalizeCEFR, type LessonPlan } from './lessonPlan';
+import { normalizeCEFR } from './lessonPlan';
 
 export interface CoachingProfile {
   level?: string;
