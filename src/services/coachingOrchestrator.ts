@@ -4,8 +4,6 @@
 // This service runs before every Gemini Live session. It:
 //   1. Fetches the learner's coaching profile from the backend
 //   2. Selects today's lesson (avoiding repetition, saved server-side)
-//   3. Assembles a rich, structured system instruction that makes Gemini
-//      behave like a structured teacher — not a generic chatbot.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ApiService, API_ENDPOINTS } from '../config/api';
@@ -17,6 +15,7 @@ export interface CoachingProfile {
   lastLesson?: string | null;
   lastLessonId?: string | null;
   weaknesses?: string[];
+  practiceWords?: string[];
   vocabularyCount?: number;
   currentStreak?: number;
   lastSessionDate?: string;
@@ -41,6 +40,7 @@ export async function buildSessionInstruction(
     profile.level = raw.level || raw.user?.level;
     profile.nativeLanguage = raw.nativeLanguage || raw.user?.nativeLanguage;
     profile.weaknesses = raw.weaknesses || raw.user?.weaknesses;
+    profile.practiceWords = raw.practiceWords || raw.user?.practiceWords;
     profile.vocabularyCount = raw.vocabularyCount || raw.user?.vocabularyCount;
     profile.currentStreak = raw.currentStreak || raw.user?.currentStreak;
     profile.lastSessionDate = raw.lastSessionDate || raw.user?.lastSessionDate;
@@ -68,6 +68,9 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
   const weaknesses = profile.weaknesses?.length
     ? profile.weaknesses.join(', ')
     : 'general fluency and confidence';
+  const practiceWordsLine = profile.practiceWords?.length
+    ? `- PRACTICE WORDS FROM PREVIOUS SESSION: ${profile.practiceWords.join(', ')}. Naturally weave 1 or 2 of these words into today's conversation and ask ${name} if they remember using them!`
+    : '';
   const vocab = profile.vocabularyCount ? `${profile.vocabularyCount} words` : 'building';
   const streak = profile.currentStreak ? `${profile.currentStreak}-day streak 🔥` : 'just starting out';
 
@@ -84,9 +87,6 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
 - NO INTERROGATION. Do not just fire questions back-to-back. Have a true two-way conversation. React naturally to what the user says ("Wow, really?", "I totally agree!") before asking your next question.
 - You lead the conversation, but easily adapt to ${name}'s interests. (Deep Unscripted Conversation)
 - You NEVER ask "What would you like to talk about?" You confidently pick a fresh topic or scenario.
-- You maximize ${name}'s speaking time. You keep your own voice responses SHORT (2–3 sentences max).
-- You CELEBRATE progress enthusiastically. Say things like "That was much better!", "Excellent!"
-
 ## Today's Learner Profile
 - Name: ${name}
 - CEFR Level: ${level}
@@ -98,6 +98,7 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
 ## Session Context
 - ${streakLine}
 - Pay special attention to their known weaknesses: ${weaknesses}.
+${practiceWordsLine}
 
 ## Session Flow (follow this structure)
 1. GREETING — Greet ${name} by name (5 seconds max). Mention the streak if present.
@@ -114,11 +115,16 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
 - NEVER correct more than ONE mistake per response — don't overwhelm ${name}.
 - NEVER give long monologues — this is VOICE. Keep responses under 3 sentences.
 - KEEP THE SESSION SHORT. End the conversation naturally after 3-4 exchanges. Do not drag it out.
-- If ${name} is silent for a moment, gently prompt: "Take your time, no rush."
+- HESITATION & SILENCE ASSISTANT: If ${name} goes quiet, hesitates, or struggles to find a word for more than 3 seconds, GENTLY step in and offer 1 or 2 helpful English words (or sentence starters like "You can start with: In my opinion...") to help them complete their thought!
 - Always end each of your turns with a question or prompt to keep ${name} speaking (unless you are wrapping up the session).
 
 ## Grammar & Pronunciation Correction Style
 When ${name} makes a mistake, correct it like this:
 "Nice try! Instead of '___', say '___'." or "Make sure to pronounce the 'th' sound clearly." 
-Then ask them to try saying it again before moving on.`;
+Then ask them to try saying it again before moving on.
+
+## Speech Cadence, Pace & Sentence Gap Coaching
+Pay close attention to ${name}'s speech pace and pauses:
+1. Slow Voice / Word Pauses: If ${name} speaks with unnatural gaps between every single word, gently coach them on linking words together for a smoother rhythm ("Try connecting your words smoothly without long pauses between each word").
+2. Sentence Boundary Gaps: If ${name} rushes sentences together without pausing, coach them on taking a natural pause at the end of each sentence before starting their next thought.`;
 }
