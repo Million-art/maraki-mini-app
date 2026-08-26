@@ -302,6 +302,24 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected, liveError]);
 
+  // 3-Second Silence & Word Struggle Voice Nudge (Triggers smooth real-time AI voice support)
+  useEffect(() => {
+    let silenceNudgeTimer: any;
+    if (liveStatus === 'listening' && liveServiceRef.current) {
+      silenceNudgeTimer = setTimeout(() => {
+        if (liveServiceRef.current) {
+          console.log('[Silence Nudge] Student struggling or quiet for 3s — prompting Maraki AI for smooth voice assistance.');
+          liveServiceRef.current.sendTextMessage(
+            '[The student is hesitating or struggling to find words right now. Smoothly step in to offer 1 or 2 words or sentence starters they are trying to say so they can continue speaking.]'
+          );
+        }
+      }, 3000);
+    }
+    return () => {
+      if (silenceNudgeTimer) clearTimeout(silenceNudgeTimer);
+    };
+  }, [liveStatus]);
+
   // Save session and reset timer when a call ends for any reason
   const callDurationRef = useRef(callDuration);
   useEffect(() => { callDurationRef.current = callDuration; }, [callDuration]);
