@@ -310,7 +310,7 @@ export default function VoiceChatPage() {
         if (liveServiceRef.current) {
           console.log('[Silence Nudge] Student struggling or quiet for 3s — prompting Maraki AI for smooth voice assistance.');
           liveServiceRef.current.sendTextMessage(
-            '[The student is hesitating or struggling to find words right now. Smoothly step in to offer 1 or 2 words or sentence starters they are trying to say so they can continue speaking.]'
+            '[The student is hesitating or struggling to find words right now. Warmly encourage them: "Make it easy! You can start by saying..." and suggest a simple 2-3 word sentence starter so they can start speaking right away.]'
           );
         }
       }, 3000);
