@@ -97,6 +97,7 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
 
 ## Session Context
 - ${streakLine}
+${practiceWordsLine}
 
 ## Session Flow
 1. GREETING — Greet ${name} warmly by name (5 seconds max).
