@@ -302,18 +302,43 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected, liveError]);
 
-  // 3-Second Silence & Word Struggle Voice Nudge (Triggers smooth real-time AI voice support)
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+
+  const starterPhraseGroups = useMemo(
+    () => [
+      ["I think that...", "In my opinion...", "To be honest..."],
+      ["Could you explain...", "What do you mean by...", "Can you give an example?"],
+      ["I usually prefer...", "For example...", "That's interesting because..."],
+      ["I agree with you because...", "In Ethiopia, we...", "I have tried..."],
+      ["Could you repeat that?", "How do you say...", "I'm not sure, but..."],
+    ],
+    []
+  );
+
+  useEffect(() => {
+    let interval: any;
+    if (isCallActive) {
+      interval = setInterval(() => {
+        setSuggestionIndex((prev) => (prev + 1) % starterPhraseGroups.length);
+      }, 10000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCallActive, starterPhraseGroups]);
+
+  // 6-Second Silence Nudge (Asks friendly open question without spoken dictation)
   useEffect(() => {
     let silenceNudgeTimer: any;
     if (liveStatus === 'listening' && liveServiceRef.current) {
       silenceNudgeTimer = setTimeout(() => {
         if (liveServiceRef.current) {
-          console.log('[Silence Nudge] Student struggling or quiet for 3s — prompting Maraki AI for smooth voice assistance.');
+          console.log('[Silence Nudge] Student quiet for 6s — prompting Maraki AI for gentle conversation question.');
           liveServiceRef.current.sendTextMessage(
-            '[The student is hesitating or struggling to find words right now. Warmly encourage them: "Make it easy! You can start by saying..." and suggest a simple 2-3 word sentence starter so they can start speaking right away.]'
+            '[The student is taking a moment to think. Ask a friendly, simple 1-sentence open question to help them continue naturally. DO NOT dictate sentence starters or say "You can say...".]'
           );
         }
-      }, 3000);
+      }, 6000);
     }
     return () => {
       if (silenceNudgeTimer) clearTimeout(silenceNudgeTimer);
@@ -771,6 +796,42 @@ export default function VoiceChatPage() {
               </button>
             </div>
           )}
+
+          {/* Visual Sentence Starter Chips — Positioned right above Mascot for smooth audio flow */}
+          <AnimatePresence mode="wait">
+            {isCallActive && (
+              <motion.div
+                key={suggestionIndex}
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="mb-3 w-full max-w-xs sm:max-w-sm mx-auto px-3.5 py-2.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200/80 backdrop-blur-md rounded-2xl shadow-xs text-center z-20"
+              >
+                <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                    💡 Useful Sentence Starters (Tap to speak)
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  {starterPhraseGroups[suggestionIndex].map((phrase, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (liveServiceRef.current) {
+                          liveServiceRef.current.sendTextMessage(`I want to say: "${phrase}"`);
+                        }
+                      }}
+                      className="text-xs font-bold text-gray-800 bg-white hover:bg-emerald-50 border border-gray-200/90 hover:border-emerald-400 px-3 py-1 rounded-full shadow-2xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      "{phrase}"
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Mascot Stage */}
           <div className="relative flex items-center justify-center w-[16rem] h-[16rem] sm:w-[20rem] sm:h-[20rem] md:w-[24rem] md:h-[24rem] transition-all">
