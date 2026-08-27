@@ -366,7 +366,7 @@ export default function VoiceChatPage() {
       const latestThread = threadsRef.current.find(t => t.id === activeThreadId);
       const sessionMessages = latestThread?.messages || [];
 
-      if (duration >= 60 && telegramId) {
+      if (duration >= 5 && telegramId) {
         console.log(`[Session] Saving voice session for user ${telegramId} (${duration}s, ${sessionMessages.length} msgs)...`);
         ApiService.post(API_ENDPOINTS.SAVE_VOICE_SESSION, {
           telegramId: telegramId.toString(),
