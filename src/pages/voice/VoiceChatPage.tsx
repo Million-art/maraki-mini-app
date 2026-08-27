@@ -289,20 +289,20 @@ export default function VoiceChatPage() {
     return () => window.removeEventListener('maraki_grammar_mistake', handleGrammarMistake);
   }, [activeThreadId]);
 
-  // Listen for AI-generated stuck suggestions tool events
-  const [stuckSuggestions, setStuckSuggestions] = useState<string[]>([]);
+  // Listen for AI-generated single full-sentence stuck suggestion tool events
+  const [stuckSuggestion, setStuckSuggestion] = useState<string>('');
 
   useEffect(() => {
     const handleStuckSuggestions = (e: any) => {
-      const raw = e.detail?.suggestions || '';
-      let list: string[] = [];
+      const raw = e.detail?.suggestion || e.detail?.suggestions || '';
+      let text = '';
       if (typeof raw === 'string') {
-        list = raw.split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-      } else if (Array.isArray(raw)) {
-        list = raw;
+        text = raw.trim().replace(/^["']|["']$/g, '');
+      } else if (Array.isArray(raw) && raw.length > 0) {
+        text = String(raw[0]).trim().replace(/^["']|["']$/g, '');
       }
-      if (list.length > 0) {
-        setStuckSuggestions(list);
+      if (text) {
+        setStuckSuggestion(text);
       }
     };
 
@@ -310,10 +310,10 @@ export default function VoiceChatPage() {
     return () => window.removeEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
   }, []);
 
-  // Clear stuck suggestions when liveStatus is no longer listening
+  // Clear stuck suggestion when status moves away from listening
   useEffect(() => {
     if (liveStatus !== 'listening') {
-      setStuckSuggestions([]);
+      setStuckSuggestion('');
     }
   }, [liveStatus]);
 
@@ -330,23 +330,24 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected, liveError]);
 
-  // 5-Second Silence Nudge: Triggers AI tool execution ONLY when user is quiet/stuck
+  // Immediate Suggestion Nudge: Prompts AI for ONE full sentence practice suggestion immediately when AI finishes speaking
   useEffect(() => {
-    let silenceNudgeTimer: any;
+    let timer: any;
     if (liveStatus === 'listening' && liveServiceRef.current) {
-      silenceNudgeTimer = setTimeout(() => {
-        if (liveServiceRef.current) {
-          console.log('[Silence Nudge] Student quiet for 5s — prompting Gemini AI for dynamic stuck suggestions tool call.');
+      // Trigger immediately (150ms delay just for audio buffer clearing)
+      timer = setTimeout(() => {
+        if (liveServiceRef.current && !stuckSuggestion) {
+          console.log('[Immediate Suggestion] AI finished speaking — requesting visual practice sentence tool call.');
           liveServiceRef.current.sendTextMessage(
-            '[The student is stuck or quiet right now. Call the tool "provide_stuck_suggestions" with 2-3 relevant sentence starters matching the conversation so they display on screen. DO NOT speak these suggestions out loud in audio.]'
+            '[Your turn just ended. Call the tool "provide_stuck_suggestions" with ONE full, complete, natural practice sentence that answers your question or continues your thought. DO NOT speak audio — remain patient and quiet in silence so the student can read it out loud.]'
           );
         }
-      }, 5000);
+      }, 150);
     }
     return () => {
-      if (silenceNudgeTimer) clearTimeout(silenceNudgeTimer);
+      if (timer) clearTimeout(timer);
     };
-  }, [liveStatus]);
+  }, [liveStatus, stuckSuggestion]);
 
   // Save session and reset timer when a call ends for any reason
   const callDurationRef = useRef(callDuration);
@@ -800,39 +801,42 @@ export default function VoiceChatPage() {
             </div>
           )}
 
-          {/* Visual AI Sentence Starters — Displayed ONLY when user is stuck (via AI tool call) */}
+          {/* Visual AI Single Full Practice Sentence — Displayed ONLY when user is stuck (via AI tool call) */}
           <AnimatePresence mode="wait">
-            {liveStatus === 'listening' && stuckSuggestions.length > 0 && (
+            {liveStatus === 'listening' && stuckSuggestion && (
               <motion.div
-                key={stuckSuggestions.join('-')}
+                key={stuckSuggestion}
                 initial={{ opacity: 0, y: -8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                transition={{ duration: 0.25 }}
-                className="mb-3 w-full max-w-xs sm:max-w-sm mx-auto px-3.5 py-2.5 bg-gradient-to-r from-amber-50 via-emerald-50 to-amber-50 border border-amber-300/80 backdrop-blur-md rounded-2xl shadow-md text-center z-20"
+                transition={{ duration: 0.3 }}
+                className="mb-3.5 w-full max-w-xs sm:max-w-md mx-auto px-4 py-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300/90 backdrop-blur-md rounded-2xl shadow-md text-center z-20"
               >
-                <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  <p className="text-[10px] font-extrabold text-amber-900 uppercase tracking-wider">
-                    💡 Need help? Tap a phrase to respond:
-                  </p>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider">
+                      💡 Practice Sentence (Read out loud):
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStuckSuggestion('')}
+                    className="text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  {stuckSuggestions.map((phrase, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        if (liveServiceRef.current) {
-                          liveServiceRef.current.sendTextMessage(`I want to say: "${phrase}"`);
-                          setStuckSuggestions([]);
-                        }
-                      }}
-                      className="text-xs font-bold text-gray-800 bg-white hover:bg-emerald-50 border border-gray-200/90 hover:border-emerald-400 px-3 py-1 rounded-full shadow-2xs transition-all active:scale-95 cursor-pointer"
-                    >
-                      "{phrase}"
-                    </button>
-                  ))}
-                </div>
+                <p
+                  onClick={() => {
+                    if (liveServiceRef.current) {
+                      liveServiceRef.current.sendTextMessage(stuckSuggestion);
+                      setStuckSuggestion('');
+                    }
+                  }}
+                  className="text-xs sm:text-sm font-semibold text-gray-800 bg-white/95 border border-emerald-200/90 p-2.5 rounded-xl shadow-2xs leading-relaxed cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all active:scale-[0.99]"
+                >
+                  "{stuckSuggestion}"
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

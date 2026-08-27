@@ -207,24 +207,25 @@ export class ProvideStuckSuggestionsTool extends FunctionCallDefinition {
   constructor() {
     super(
       'provide_stuck_suggestions',
-      'Provides 2 to 3 natural, highly relevant sentence starters for the user to see on their screen ONLY when the user is stuck, silent, or struggling to find words. DO NOT speak these out loud.',
+      'Provides ONE single, complete, natural practice sentence for the user to read visually on screen when they hesitate or pause. DO NOT speak this sentence out loud.',
       {
         type: 'object',
         properties: {
-          suggestions: {
+          suggestion: {
             type: 'string',
-            description: 'Comma-separated list of 2 or 3 sentence starters (e.g. "I think that..., In my opinion..., For instance...")',
+            description: 'One full, complete, natural practice sentence matching the conversation topic.',
           },
         },
       },
-      ['suggestions'],
+      ['suggestion'],
     );
   }
 
-  functionToCall(parameters: { suggestions: string }): { success: boolean } {
-    console.log(`💡 AI Stuck Suggestions Received:`, parameters.suggestions);
+  functionToCall(parameters: { suggestion?: string; suggestions?: string }): { success: boolean } {
+    const fullSentence = parameters.suggestion || parameters.suggestions || '';
+    console.log(`💡 AI Single Full Sentence Suggestion Received:`, fullSentence);
     window.dispatchEvent(
-      new CustomEvent('maraki_stuck_suggestions', { detail: parameters })
+      new CustomEvent('maraki_stuck_suggestions', { detail: { suggestion: fullSentence } })
     );
     return { success: true };
   }
