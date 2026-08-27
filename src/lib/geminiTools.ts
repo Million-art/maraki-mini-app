@@ -200,9 +200,40 @@ export class ReportGrammarMistakeTool extends FunctionCallDefinition {
   }
 }
 
+/**
+ * Provide Stuck Suggestions Tool - Dispatches 2-3 sentence starters generated dynamically by AI when user is stuck
+ */
+export class ProvideStuckSuggestionsTool extends FunctionCallDefinition {
+  constructor() {
+    super(
+      'provide_stuck_suggestions',
+      'Provides 2 to 3 natural, highly relevant sentence starters for the user to see on their screen ONLY when the user is stuck, silent, or struggling to find words. DO NOT speak these out loud.',
+      {
+        type: 'object',
+        properties: {
+          suggestions: {
+            type: 'string',
+            description: 'Comma-separated list of 2 or 3 sentence starters (e.g. "I think that..., In my opinion..., For instance...")',
+          },
+        },
+      },
+      ['suggestions'],
+    );
+  }
+
+  functionToCall(parameters: { suggestions: string }): { success: boolean } {
+    console.log(`💡 AI Stuck Suggestions Received:`, parameters.suggestions);
+    window.dispatchEvent(
+      new CustomEvent('maraki_stuck_suggestions', { detail: parameters })
+    );
+    return { success: true };
+  }
+}
+
 // Global Registry of available custom tools for Gemini Live API
 export const defaultGeminiTools: FunctionCallDefinition[] = [
   new ShowAlertTool(),
   new AddCSSStyleTool(),
   new ReportGrammarMistakeTool(),
+  new ProvideStuckSuggestionsTool(),
 ];

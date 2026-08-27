@@ -289,6 +289,34 @@ export default function VoiceChatPage() {
     return () => window.removeEventListener('maraki_grammar_mistake', handleGrammarMistake);
   }, [activeThreadId]);
 
+  // Listen for AI-generated stuck suggestions tool events
+  const [stuckSuggestions, setStuckSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const handleStuckSuggestions = (e: any) => {
+      const raw = e.detail?.suggestions || '';
+      let list: string[] = [];
+      if (typeof raw === 'string') {
+        list = raw.split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      } else if (Array.isArray(raw)) {
+        list = raw;
+      }
+      if (list.length > 0) {
+        setStuckSuggestions(list);
+      }
+    };
+
+    window.addEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
+    return () => window.removeEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
+  }, []);
+
+  // Clear stuck suggestions when liveStatus is no longer listening
+  useEffect(() => {
+    if (liveStatus !== 'listening') {
+      setStuckSuggestions([]);
+    }
+  }, [liveStatus]);
+
   // Call duration timer effect
   useEffect(() => {
     let timer: any;
@@ -302,43 +330,18 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected, liveError]);
 
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
-
-  const starterPhraseGroups = useMemo(
-    () => [
-      ["I think that...", "In my opinion...", "To be honest..."],
-      ["Could you explain...", "What do you mean by...", "Can you give an example?"],
-      ["I usually prefer...", "For example...", "That's interesting because..."],
-      ["I agree with you because...", "In Ethiopia, we...", "I have tried..."],
-      ["Could you repeat that?", "How do you say...", "I'm not sure, but..."],
-    ],
-    []
-  );
-
-  useEffect(() => {
-    let interval: any;
-    if (isCallActive) {
-      interval = setInterval(() => {
-        setSuggestionIndex((prev) => (prev + 1) % starterPhraseGroups.length);
-      }, 10000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isCallActive, starterPhraseGroups]);
-
-  // 6-Second Silence Nudge (Asks friendly open question without spoken dictation)
+  // 5-Second Silence Nudge: Triggers AI tool execution ONLY when user is quiet/stuck
   useEffect(() => {
     let silenceNudgeTimer: any;
     if (liveStatus === 'listening' && liveServiceRef.current) {
       silenceNudgeTimer = setTimeout(() => {
         if (liveServiceRef.current) {
-          console.log('[Silence Nudge] Student quiet for 6s — prompting Maraki AI for gentle conversation question.');
+          console.log('[Silence Nudge] Student quiet for 5s — prompting Gemini AI for dynamic stuck suggestions tool call.');
           liveServiceRef.current.sendTextMessage(
-            '[The student is taking a moment to think. Ask a friendly, simple 1-sentence open question to help them continue naturally. DO NOT dictate sentence starters or say "You can say...".]'
+            '[The student is stuck or quiet right now. Call the tool "provide_stuck_suggestions" with 2-3 relevant sentence starters matching the conversation so they display on screen. DO NOT speak these suggestions out loud in audio.]'
           );
         }
-      }, 6000);
+      }, 5000);
     }
     return () => {
       if (silenceNudgeTimer) clearTimeout(silenceNudgeTimer);
@@ -797,30 +800,31 @@ export default function VoiceChatPage() {
             </div>
           )}
 
-          {/* Visual Sentence Starter Chips — Positioned right above Mascot for smooth audio flow */}
+          {/* Visual AI Sentence Starters — Displayed ONLY when user is stuck (via AI tool call) */}
           <AnimatePresence mode="wait">
-            {isCallActive && (
+            {liveStatus === 'listening' && stuckSuggestions.length > 0 && (
               <motion.div
-                key={suggestionIndex}
+                key={stuckSuggestions.join('-')}
                 initial={{ opacity: 0, y: -8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="mb-3 w-full max-w-xs sm:max-w-sm mx-auto px-3.5 py-2.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200/80 backdrop-blur-md rounded-2xl shadow-xs text-center z-20"
+                transition={{ duration: 0.25 }}
+                className="mb-3 w-full max-w-xs sm:max-w-sm mx-auto px-3.5 py-2.5 bg-gradient-to-r from-amber-50 via-emerald-50 to-amber-50 border border-amber-300/80 backdrop-blur-md rounded-2xl shadow-md text-center z-20"
               >
                 <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-                    💡 Useful Sentence Starters (Tap to speak)
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <p className="text-[10px] font-extrabold text-amber-900 uppercase tracking-wider">
+                    💡 Need help? Tap a phrase to respond:
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  {starterPhraseGroups[suggestionIndex].map((phrase, idx) => (
+                  {stuckSuggestions.map((phrase, idx) => (
                     <button
                       key={idx}
                       onClick={() => {
                         if (liveServiceRef.current) {
                           liveServiceRef.current.sendTextMessage(`I want to say: "${phrase}"`);
+                          setStuckSuggestions([]);
                         }
                       }}
                       className="text-xs font-bold text-gray-800 bg-white hover:bg-emerald-50 border border-gray-200/90 hover:border-emerald-400 px-3 py-1 rounded-full shadow-2xs transition-all active:scale-95 cursor-pointer"
