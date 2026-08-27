@@ -65,7 +65,7 @@ export class GeminiLiveService {
       const baselineFallback = "You are Maraki, a warm and expert English speaking coach. Lead the session with a clear lesson goal. If the user makes a grammar mistake, correct it naturally and ask them to try again. Keep your responses short during live voice — 2 to 3 sentences max.";
 
       const combinedInstruction = this.handlers.systemInstruction
-        ? `${this.handlers.systemInstruction}\n\n## Grammar Correction Rule\nIf the user makes a grammar, pronunciation, or phrasing mistake, correct it once clearly and naturally, then ask them to repeat the correct version. NEVER ignore mistakes. NEVER correct incomplete sentences or mid-thought pauses — wait until they finish their complete thought.`
+        ? `${this.handlers.systemInstruction}\n\n## Patience & Natural Flow Rules\n- NEVER interrupt the learner while they are speaking or taking a natural pause to think. Wait until they finish their complete thought.\n- NO INFINITE CORRECTION LOOPS. Do NOT force the learner to repeat phrases or corrections over and over. If you offer a correction or suggestion once, IMMEDIATELY move on to a new conversation thought.\n- DO NOT repeatedly say "You can say...". Have a natural, friendly two-way conversation.`
         : baselineFallback;
 
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
