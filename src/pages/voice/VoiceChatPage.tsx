@@ -330,11 +330,56 @@ export default function VoiceChatPage() {
     };
   }, [isFullyConnected, liveError]);
 
-  // Immediate Suggestion Nudge: Prompts AI for ONE full sentence practice suggestion immediately when AI finishes speaking
+  // Auto-disconnect active voice call if tab is hidden / minimized to avoid runaway streaming cost
   useEffect(() => {
-    let timer: any;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && liveServiceRef.current) {
+        console.log('[Cost Protection] Tab hidden — auto disconnecting live voice stream to save API costs.');
+        liveServiceRef.current.endSession();
+        setLiveStatus('disconnected');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Hard Max Call Duration Cap (10 Mins)
+  useEffect(() => {
+    if (callDuration >= 600 && liveServiceRef.current) {
+      console.log('[Cost Protection] 10-minute session limit reached — ending call.');
+      liveServiceRef.current.endSession();
+      setLiveStatus('disconnected');
+    }
+  }, [callDuration]);
+
+  // Idle Silence Safety Auto-Disconnect (120s of quiet in listening state)
+  useEffect(() => {
+    let idleTimer: any;
     if (liveStatus === 'listening' && liveServiceRef.current) {
-      // Trigger immediately (150ms delay just for audio buffer clearing)
+      idleTimer = setTimeout(() => {
+        if (liveServiceRef.current) {
+          console.log('[Cost Protection] Idle for 120s in listening state — disconnecting session.');
+          liveServiceRef.current.endSession();
+          setLiveStatus('disconnected');
+        }
+      }, 120000);
+    }
+    return () => {
+      if (idleTimer) clearTimeout(idleTimer);
+    };
+  }, [liveStatus]);
+
+  // Single-Fire Immediate Suggestion Nudge (Fires ONCE per AI turn)
+  const hasNudgedRef = useRef(false);
+
+  useEffect(() => {
+    if (liveStatus === 'speaking' || liveStatus === 'thinking') {
+      hasNudgedRef.current = false;
+    }
+
+    let timer: any;
+    if (liveStatus === 'listening' && liveServiceRef.current && !hasNudgedRef.current) {
+      hasNudgedRef.current = true;
       timer = setTimeout(() => {
         if (liveServiceRef.current && !stuckSuggestion) {
           console.log('[Immediate Suggestion] AI finished speaking — requesting visual practice sentence tool call.');
@@ -342,7 +387,7 @@ export default function VoiceChatPage() {
             '[Your turn just ended. Call the tool "provide_stuck_suggestions" with ONE full, complete, natural practice sentence that answers your question or continues your thought. DO NOT speak audio — remain patient and quiet in silence so the student can read it out loud.]'
           );
         }
-      }, 150);
+      }, 200);
     }
     return () => {
       if (timer) clearTimeout(timer);
