@@ -285,13 +285,14 @@ export class AudioStreamer {
             if (event.data.type === 'audio') {
               const inputData: Float32Array = event.data.data;
               
+              let sumSq = 0;
+              // Sample a subset of the array for performance & silence gating
+              for (let i = 0; i < inputData.length; i += 4) {
+                sumSq += inputData[i] * inputData[i];
+              }
+              const rms = Math.sqrt(sumSq / (inputData.length / 4));
+
               if (this.onVoiceActivity) {
-                let sumSq = 0;
-                // Sample a subset of the array for performance
-                for (let i = 0; i < inputData.length; i += 4) {
-                  sumSq += inputData[i] * inputData[i];
-                }
-                const rms = Math.sqrt(sumSq / (inputData.length / 4));
                 // Simple RMS threshold for voice activity detection
                 if (rms > 0.03) {
                   const now = Date.now();
@@ -301,6 +302,11 @@ export class AudioStreamer {
                     this.lastVADTime = now;
                   }
                 }
+              }
+
+              // SILENCE GATE VAD: If audio volume is below speech threshold (rms < 0.015), skip sending PCM audio chunks to save API costs
+              if (rms < 0.015) {
+                return;
               }
 
               const pcm16Data = this.convertToPCM16(inputData);

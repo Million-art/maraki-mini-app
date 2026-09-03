@@ -148,6 +148,7 @@ export default function VoiceChatPage() {
   const [callDuration, setCallDuration] = useState<number>(0);
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
   const [liveVoiceSecondsUsed, setLiveVoiceSecondsUsed] = useState<number>(0);
+  const [voiceQuotaSeconds, setVoiceQuotaSeconds] = useState<number>(120); // default: free tier 120s
   const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
 
@@ -201,10 +202,14 @@ export default function VoiceChatPage() {
     if (!telegramId) return;
     ApiService.get<any>(API_ENDPOINTS.STUDENT_BY_TELEGRAM_ID(telegramId))
       .then((data) => {
-        const premium = data?.isMarakiPremium || data?.data?.isMarakiPremium || false;
+        const d = data?.data || data;
+        const premium = d?.isMarakiPremium || d?.isPremium || false;
         setIsPremiumUser(premium);
-        const usedSeconds = data?.liveVoiceSecondsUsed || data?.data?.liveVoiceSecondsUsed || 0;
+        // Load period-based quota: seconds used this subscription period
+        const usedSeconds = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
+        const quotaSeconds = d?.voiceSecondsQuotaThisPeriod ?? (premium ? 9000 : 120);
         setLiveVoiceSecondsUsed(usedSeconds);
+        setVoiceQuotaSeconds(quotaSeconds);
       })
       .catch(() => setIsPremiumUser(false));
   }, [telegramId]);
@@ -401,9 +406,9 @@ export default function VoiceChatPage() {
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
       const duration = callDurationRef.current;
-      
-      // Update local state so they can't exploit stale values to start new calls
-      if (duration > 0 && !isPremiumUser) {
+
+      // Accumulate used seconds locally for ALL users (free + premium)
+      if (duration > 0) {
         setLiveVoiceSecondsUsed((prev) => prev + duration);
       }
 
@@ -474,19 +479,28 @@ export default function VoiceChatPage() {
     };
   }, []);
 
-  // 120-Second Cumulative Freemium Limit Enforcer (skipped for premium users)
+  // Period Quota Enforcer — works for ALL users (free: 120s total, premium: their purchased quota)
   useEffect(() => {
-    if (isCallActive && !isPremiumUser) {
-      if ((liveVoiceSecondsUsed + callDuration) >= 120) {
-        // 1. End the call immediately
+    if (!isCallActive) return;
+    const totalUsed = liveVoiceSecondsUsed + callDuration;
+
+    if (isPremiumUser) {
+      // Premium: enforce against their purchased period quota (e.g. 9,000s for monthly)
+      if (voiceQuotaSeconds > 0 && totalUsed >= voiceQuotaSeconds) {
+        console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s) — ending call.`);
         liveServiceRef.current?.endSession();
         setLiveStatus('disconnected');
-
-        // 2. Open the Video Demo Modal directly
+        setLiveError('🎯 You have used all your Gemini Voice minutes for this subscription period. Text practice and lessons continue as normal!');
+      }
+    } else {
+      // Free users: 120s total cap
+      if (totalUsed >= 120) {
+        liveServiceRef.current?.endSession();
+        setLiveStatus('disconnected');
         setShowDemoModal(true);
       }
     }
-  }, [callDuration, liveStatus, isPremiumUser, liveVoiceSecondsUsed, isCallActive]);
+  }, [callDuration, liveStatus, isPremiumUser, liveVoiceSecondsUsed, voiceQuotaSeconds, isCallActive]);
 
   // Handle Popup Close Events
   useEffect(() => {
@@ -520,9 +534,18 @@ export default function VoiceChatPage() {
       return;
     }
 
-    // Real Premium Validation Gate: Open Demo Video Popup if trial has ended
+    // Real Premium Validation Gate: Open Demo Video Popup if free trial has ended
     if (!isPremiumUser && liveVoiceSecondsUsed >= 120) {
       setShowDemoModal(true);
+      return;
+    }
+
+    // Premium Quota Gate: Block call start if period quota is fully exhausted
+    if (isPremiumUser && voiceQuotaSeconds > 0 && liveVoiceSecondsUsed >= voiceQuotaSeconds) {
+      setLiveError(
+        `🚧 You have used all your Voice AI minutes for this subscription period (${Math.round(voiceQuotaSeconds / 60)} minutes total). ` +
+        `Your lessons and quizzes are still fully active! Renew or upgrade your subscription to get more voice minutes.`
+      );
       return;
     }
 
@@ -590,7 +613,7 @@ export default function VoiceChatPage() {
         
         let userFriendlyErr = err;
         if (err.includes('1008') || err.includes('denied access') || err.includes('closed by server')) {
-          userFriendlyErr = '🌙 Daily voice practice limit reached. Please come back tomorrow for fresh voice practice! 🚀';
+          userFriendlyErr = '🚧 Your monthly Voice AI quota has been reached on the server side. Your lessons and quizzes remain active — renew your subscription to unlock more voice minutes! 🚀';
         }
         setLiveError(userFriendlyErr);
 
