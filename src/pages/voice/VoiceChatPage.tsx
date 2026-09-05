@@ -490,7 +490,7 @@ export default function VoiceChatPage() {
         console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s) — ending call.`);
         liveServiceRef.current?.endSession();
         setLiveStatus('disconnected');
-        setLiveError('🎯 You have used all your Gemini Voice minutes for this subscription period. Text practice and lessons continue as normal!');
+        setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
       }
     } else {
       // Free users: 120s total cap
@@ -508,10 +508,10 @@ export default function VoiceChatPage() {
       const off = on('popup_closed', (payload) => {
         if (payload?.button_id === 'upgrade') {
           const botUsername = import.meta.env.VITE_BOT_USERNAME || 'marakiai_bot';
-          
+
           // Use internal deep link payload: /resolve?domain=bot_username&start=pay
           const deepLinkPath = `/${botUsername}?start=pay`;
-          
+
           // Open the bot link and close the Mini App
           postEvent('web_app_open_tg_link', { path_full: deepLinkPath });
           postEvent('web_app_close');
@@ -534,18 +534,9 @@ export default function VoiceChatPage() {
       return;
     }
 
-    // Real Premium Validation Gate: Open Demo Video Popup if free trial has ended
+    // Real Premium Validation Gate: Open Demo Video Popup if trial has ended
     if (!isPremiumUser && liveVoiceSecondsUsed >= 120) {
       setShowDemoModal(true);
-      return;
-    }
-
-    // Premium Quota Gate: Block call start if period quota is fully exhausted
-    if (isPremiumUser && voiceQuotaSeconds > 0 && liveVoiceSecondsUsed >= voiceQuotaSeconds) {
-      setLiveError(
-        `🚧 You have used all your Voice AI minutes for this subscription period (${Math.round(voiceQuotaSeconds / 60)} minutes total). ` +
-        `Your lessons and quizzes are still fully active! Renew or upgrade your subscription to get more voice minutes.`
-      );
       return;
     }
 
@@ -610,10 +601,10 @@ export default function VoiceChatPage() {
         setIsAiTyping(false);
         setLiveStatus('error');
         liveServiceRef.current?.endSession();
-        
+
         let userFriendlyErr = err;
         if (err.includes('1008') || err.includes('denied access') || err.includes('closed by server')) {
-          userFriendlyErr = '🚧 Your monthly Voice AI quota has been reached on the server side. Your lessons and quizzes remain active — renew your subscription to unlock more voice minutes! 🚀';
+          userFriendlyErr = '🌙 Daily voice practice limit reached. Please come back tomorrow for fresh voice practice! 🚀';
         }
         setLiveError(userFriendlyErr);
 
@@ -623,7 +614,7 @@ export default function VoiceChatPage() {
           name: tgUser?.firstName || tgUser?.first_name || 'Student',
           error: err,
           context: 'VoiceChatPage (Gemini Live API Quota Alert)',
-        }).catch(() => {});
+        }).catch(() => { });
       },
     });
 
@@ -763,7 +754,7 @@ export default function VoiceChatPage() {
         name: tgUser?.firstName || tgUser?.first_name || 'Student',
         error: errMsg,
         context: 'VoiceChatPage (Stream)',
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 
