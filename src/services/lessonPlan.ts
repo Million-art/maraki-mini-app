@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Maraki AI — Lesson Plan Rotation Table
+// Maraki AI   Lesson Plan Rotation Table
 // Each lesson has a clear topic, measurable goal, opening question, and grammar focus.
 // The orchestrator selects from this table to ensure every session has a purpose.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       coachingPrompts: [
         'What color is it?',
         'Is it big or small?',
-        'Add one more detail — what is it made of?',
+        'Add one more detail   what is it made of?',
       ],
     },
     {
@@ -77,7 +77,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       grammarFocus: '"I love/like/hate ___ing" and "because..."',
       coachingPrompts: [
         'Can you tell me WHY you like it?',
-        'Describe how it tastes — is it spicy, sweet, sour?',
+        'Describe how it tastes   is it spicy, sweet, sour?',
         'What food do you dislike?',
       ],
     },
@@ -87,12 +87,12 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
     {
       id: 'a2-past-tense',
       level: 'A2',
-      topic: 'Past Tense — Weekend Stories',
+      topic: 'Past Tense   Weekend Stories',
       goal: 'Use past tense verbs naturally in 5+ sentences',
       opener: 'Tell me about something interesting you did last weekend. What happened?',
       grammarFocus: 'Simple past: "I went", "I saw", "I ate" (not "I go", "I see")',
       coachingPrompts: [
-        'Use the past tense — instead of "I go", say "I went".',
+        'Use the past tense   instead of "I go", say "I went".',
         'Can you add more detail? Who were you with?',
         'And then what happened after that?',
       ],
@@ -120,7 +120,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       coachingPrompts: [
         'Can you use "than" to compare those two?',
         'Which one is the BEST? Use "the most" or add "-est".',
-        'Give me one more comparison — what about the food?',
+        'Give me one more comparison   what about the food?',
       ],
     },
     {
@@ -141,10 +141,10 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       level: 'A2',
       topic: 'Ordering Food & Shopping',
       goal: 'Roleplay ordering at a restaurant or shopping naturally',
-      opener: 'Let\'s roleplay. I am a waiter at a restaurant. You just sat down — what would you like to order?',
+      opener: 'Let\'s roleplay. I am a waiter at a restaurant. You just sat down   what would you like to order?',
       grammarFocus: 'Polite requests: "Could I have...", "I\'d like...", "Can I get..."',
       coachingPrompts: [
-        'Try using "Could I have..." — it sounds more polite.',
+        'Try using "Could I have..."   it sounds more polite.',
         'Ask me what today\'s special is.',
         'How would you ask for the bill at the end?',
       ],
@@ -157,7 +157,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       opener: 'Imagine I am a tourist. How do I get from Bole Airport to Meskel Square?',
       grammarFocus: '"Turn left/right", "go straight", "next to", "across from", "at the corner of"',
       coachingPrompts: [
-        'Tell me which direction first — left or right?',
+        'Tell me which direction first   left or right?',
         'How far do I walk? Give me a landmark.',
         'What do I do after I reach the first turn?',
       ],
@@ -173,7 +173,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       opener: 'Let\'s practice for a job interview. Tell me about yourself and your professional background.',
       grammarFocus: 'Present perfect: "I have worked at...", "I have achieved..."',
       coachingPrompts: [
-        'Use the present perfect — "I have worked" not "I worked" for ongoing experience.',
+        'Use the present perfect   "I have worked" not "I worked" for ongoing experience.',
         'Can you give a specific example to support that?',
         'Why should we hire YOU over another candidate?',
       ],
@@ -186,7 +186,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       opener: 'Tell me about the most memorable day of your life. Take me through it step by step.',
       grammarFocus: 'Past continuous for background: "I was walking when..." + past simple for events',
       coachingPrompts: [
-        'Set the scene first — where were you and what were you doing?',
+        'Set the scene first   where were you and what were you doing?',
         'Use "suddenly" or "all of a sudden" for the turning point.',
         'How did the story end? How did you feel?',
       ],
@@ -256,7 +256,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       coachingPrompts: [
         'Make your opening offer using formal language.',
         'How do you respond when they say no the first time?',
-        'Find a middle ground — what could you propose as a compromise?',
+        'Find a middle ground   what could you propose as a compromise?',
       ],
     },
     {
@@ -268,7 +268,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
       grammarFocus: 'Passive voice for objectivity: "It has been suggested that...", "Studies have shown..."',
       coachingPrompts: [
         'Use evidence or a real example to back up that point.',
-        'Consider both sides — is there a counter-argument?',
+        'Consider both sides   is there a counter-argument?',
         'How would you summarize your position in two sentences?',
       ],
     },
@@ -276,7 +276,7 @@ export const LESSON_PLANS: Record<string, LessonPlan[]> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Select the next lesson for a user — avoids repeating the last lesson.
+// Select the next lesson for a user   avoids repeating the last lesson.
 // Uses day-of-year modulo for consistency within a day (same lesson all day).
 // ─────────────────────────────────────────────────────────────────────────────
 

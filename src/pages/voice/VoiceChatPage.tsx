@@ -339,7 +339,7 @@ export default function VoiceChatPage() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && liveServiceRef.current) {
-        console.log('[Cost Protection] Tab hidden — auto disconnecting live voice stream to save API costs.');
+        console.log('[Cost Protection] Tab hidden   auto disconnecting live voice stream to save API costs.');
         liveServiceRef.current.endSession();
         setLiveStatus('disconnected');
       }
@@ -351,7 +351,7 @@ export default function VoiceChatPage() {
   // Hard Max Call Duration Cap (10 Mins)
   useEffect(() => {
     if (callDuration >= 600 && liveServiceRef.current) {
-      console.log('[Cost Protection] 10-minute session limit reached — ending call.');
+      console.log('[Cost Protection] 10-minute session limit reached   ending call.');
       liveServiceRef.current.endSession();
       setLiveStatus('disconnected');
     }
@@ -363,7 +363,7 @@ export default function VoiceChatPage() {
     if (liveStatus === 'listening' && liveServiceRef.current) {
       idleTimer = setTimeout(() => {
         if (liveServiceRef.current) {
-          console.log('[Cost Protection] Idle for 120s in listening state — disconnecting session.');
+          console.log('[Cost Protection] Idle for 120s in listening state   disconnecting session.');
           liveServiceRef.current.endSession();
           setLiveStatus('disconnected');
         }
@@ -387,9 +387,9 @@ export default function VoiceChatPage() {
       hasNudgedRef.current = true;
       timer = setTimeout(() => {
         if (liveServiceRef.current && !stuckSuggestion) {
-          console.log('[Immediate Suggestion] AI finished speaking — requesting visual practice sentence tool call.');
+          console.log('[Immediate Suggestion] AI finished speaking   requesting visual practice sentence tool call.');
           liveServiceRef.current.sendTextMessage(
-            '[Your turn just ended. Call the tool "provide_stuck_suggestions" with ONE full, complete, natural practice sentence that answers your question or continues your thought. DO NOT speak audio — remain patient and quiet in silence so the student can read it out loud.]'
+            '[Your turn just ended. Call the tool "provide_stuck_suggestions" with ONE full, complete, natural practice sentence that answers your question or continues your thought. DO NOT speak audio   remain patient and quiet in silence so the student can read it out loud.]'
           );
         }
       }, 200);
@@ -479,7 +479,7 @@ export default function VoiceChatPage() {
     };
   }, []);
 
-  // Period Quota Enforcer — works for ALL users (free: 120s total, premium: their purchased quota)
+  // Period Quota Enforcer   works for ALL users (free: 120s total, premium: their purchased quota)
   useEffect(() => {
     if (!isCallActive) return;
     const totalUsed = liveVoiceSecondsUsed + callDuration;
@@ -487,7 +487,7 @@ export default function VoiceChatPage() {
     if (isPremiumUser) {
       // Premium: enforce against their purchased period quota (e.g. 9,000s for monthly)
       if (voiceQuotaSeconds > 0 && totalUsed >= voiceQuotaSeconds) {
-        console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s) — ending call.`);
+        console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s)   ending call.`);
         liveServiceRef.current?.endSession();
         setLiveStatus('disconnected');
         setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
@@ -528,7 +528,7 @@ export default function VoiceChatPage() {
   // Toggle Live AI Call Session
   const toggleLiveCall = async () => {
     if (isCallActive) {
-      // End the session — the liveStatus useEffect will handle saving the summary
+      // End the session   the liveStatus useEffect will handle saving the summary
       liveServiceRef.current?.endSession();
       setLiveStatus('disconnected');
       return;
@@ -860,7 +860,7 @@ export default function VoiceChatPage() {
             </div>
           )}
 
-          {/* Visual AI Single Full Practice Sentence — Displayed ONLY when user is stuck (via AI tool call) */}
+          {/* Visual AI Single Full Practice Sentence   Displayed ONLY when user is stuck (via AI tool call) */}
           <AnimatePresence mode="wait">
             {liveStatus === 'listening' && stuckSuggestion && (
               <motion.div

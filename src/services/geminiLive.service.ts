@@ -62,7 +62,7 @@ export class GeminiLiveService {
 
       // The coaching orchestrator builds a rich, personalized instruction.
       // If provided, use it exclusively. Fall back to a baseline only if not available.
-      const baselineFallback = "You are Maraki, a warm and expert English speaking coach. Lead the session with a clear lesson goal. If the user makes a grammar mistake, correct it naturally and ask them to try again. Keep your responses short during live voice — 2 to 3 sentences max.";
+      const baselineFallback = "You are Maraki, a warm and expert English speaking coach. Lead the session with a clear lesson goal. If the user makes a grammar mistake, correct it naturally and ask them to try again. Keep your responses short during live voice   2 to 3 sentences max.";
 
       const combinedInstruction = this.handlers.systemInstruction
         ? `${this.handlers.systemInstruction}\n\n## Patience & Natural Flow Rules\n- NEVER interrupt the learner while they are speaking or taking a natural pause to think. Wait until they finish their complete thought.\n- NO INFINITE CORRECTION LOOPS. Do NOT force the learner to repeat phrases or corrections over and over. If you offer a correction or suggestion once, IMMEDIATELY move on to a new conversation thought.\n- DO NOT repeatedly say "You can say...". Have a natural, friendly two-way conversation.`

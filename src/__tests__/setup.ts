@@ -1,4 +1,4 @@
-// Global test setup — mock Web Audio API and browser globals not available in jsdom
+// Global test setup   mock Web Audio API and browser globals not available in jsdom
 
 // ── AudioContext mock ──────────────────────────────────────────────────────────
 class MockAudioBufferSourceNode {
