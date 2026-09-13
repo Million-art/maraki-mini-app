@@ -37,6 +37,7 @@ export interface GeminiLiveOptions {
 export class GeminiLiveClient {
   private ws: WebSocket | null = null;
   public connected: boolean = false;
+  private isDestroyed: boolean = false;
   private options: GeminiLiveOptions;
   private toolsMap: Map<string, FunctionCallDefinition> = new Map();
 
@@ -57,6 +58,7 @@ export class GeminiLiveClient {
    * Connect to Gemini Live WebSocket API using an Ephemeral Token or API key
    */
   public async connect(ephemeralToken: string, host = 'generativelanguage.googleapis.com'): Promise<boolean> {
+    if (this.isDestroyed) return false;
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return true;
     }
@@ -70,10 +72,20 @@ export class GeminiLiveClient {
 
     return new Promise((resolve, reject) => {
       try {
+        if (this.isDestroyed) {
+          resolve(false);
+          return;
+        }
+
         const ws = new WebSocket(wsUrl);
         this.ws = ws;
 
         ws.onopen = () => {
+          if (this.isDestroyed || !this.ws) {
+            try { ws.close(); } catch (e) {}
+            resolve(false);
+            return;
+          }
           this.connected = true;
           this.options.onStatusChange?.('connected');
           this.sendSetupMessage();
@@ -83,6 +95,8 @@ export class GeminiLiveClient {
         ws.onclose = (evt) => {
           this.connected = false;
           this.ws = null;
+          if (this.isDestroyed) return;
+
           if (evt.code !== 1000 && evt.code !== 1005) {
             if (evt.code === 1007 || evt.reason?.includes('location is not supported') || (evt.reason && evt.reason.includes('1007'))) {
               this.options.onError?.('⚠️ Please turn off your VPN (or disconnect VPN) to start the Live Voice call.');
@@ -109,6 +123,7 @@ export class GeminiLiveClient {
 
         ws.onerror = (_err) => {
           this.connected = false;
+          if (this.isDestroyed) return;
           const errMsg = 'Gemini Live WebSocket Connection Error';
           this.options.onError?.(errMsg);
           this.options.onStatusChange?.('error');
@@ -116,6 +131,8 @@ export class GeminiLiveClient {
         };
 
         ws.onmessage = async (event) => {
+          if (this.isDestroyed || !this.connected) return;
+
           let dataStr = event.data;
           if (dataStr instanceof Blob) {
             dataStr = await dataStr.text();
@@ -123,10 +140,12 @@ export class GeminiLiveClient {
             dataStr = new TextDecoder().decode(dataStr);
           }
 
+          if (this.isDestroyed || !this.connected) return;
+
           try {
             const data = JSON.parse(dataStr);
             const responses = this.parseResponseMessages(data);
-            if (responses.length > 0) {
+            if (responses.length > 0 && !this.isDestroyed && this.connected) {
               this.options.onResponse?.(responses);
             }
           } catch (parseErr) {
@@ -134,6 +153,10 @@ export class GeminiLiveClient {
           }
         };
       } catch (err: any) {
+        if (this.isDestroyed) {
+          resolve(false);
+          return;
+        }
         this.options.onError?.(err.message || 'Failed to initialize WebSocket');
         this.options.onStatusChange?.('error');
         reject(err);
@@ -318,10 +341,13 @@ export class GeminiLiveClient {
    * Close WebSocket connection
    */
   public disconnect() {
+    this.isDestroyed = true;
+    this.connected = false;
     const ws = this.ws;
     this.ws = null;
-    this.connected = false;
     if (ws) {
+      ws.onmessage = null;
+      ws.onopen = null;
       ws.onclose = null;
       ws.onerror = null;
       try {

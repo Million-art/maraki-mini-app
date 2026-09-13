@@ -404,13 +404,15 @@ export class AudioPlayer {
   private sampleRate: number = 24000;
   private onEndedCallback: (() => void) | null = null;
   private volume: number = 1.0;
+  private isDestroyed: boolean = false;
 
   constructor() {
     this.initContext();
   }
 
   private initContext() {
-    if (!this.audioContext) {
+    if (this.isDestroyed) return;
+    if (!this.audioContext || this.audioContext.state === 'closed') {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioCtx({ sampleRate: this.sampleRate });
     }
@@ -428,8 +430,9 @@ export class AudioPlayer {
    * Play base64 encoded PCM 24kHz 16-bit audio chunk
    */
   public playChunk(base64Audio: string) {
+    if (this.isDestroyed) return;
     this.initContext();
-    if (!this.audioContext) return;
+    if (!this.audioContext || this.audioContext.state === 'closed') return;
 
     if (this.audioContext.state === 'suspended') {
       this.audioContext.resume();
@@ -486,15 +489,18 @@ export class AudioPlayer {
       }
     });
     this.activeSources = [];
-    if (this.audioContext) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.nextStartTime = this.audioContext.currentTime;
     }
   }
 
   public destroy() {
+    this.isDestroyed = true;
     this.stop();
     if (this.audioContext) {
-      this.audioContext.close();
+      try {
+        this.audioContext.close();
+      } catch (e) {}
       this.audioContext = null;
     }
   }

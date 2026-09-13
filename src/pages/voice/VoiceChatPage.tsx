@@ -149,6 +149,7 @@ export default function VoiceChatPage() {
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false);
   const [liveVoiceSecondsUsed, setLiveVoiceSecondsUsed] = useState<number>(0);
   const [voiceQuotaSeconds, setVoiceQuotaSeconds] = useState<number>(120); // default: free tier 120s
+  const [isQuotaLoaded, setIsQuotaLoaded] = useState<boolean>(false);
   const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
 
@@ -210,8 +211,12 @@ export default function VoiceChatPage() {
         const quotaSeconds = d?.voiceSecondsQuotaThisPeriod ?? (premium ? 9000 : 120);
         setLiveVoiceSecondsUsed(usedSeconds);
         setVoiceQuotaSeconds(quotaSeconds);
+        setIsQuotaLoaded(true);
       })
-      .catch(() => setIsPremiumUser(false));
+      .catch(() => {
+        setIsPremiumUser(false);
+        setIsQuotaLoaded(true);
+      });
   }, [telegramId]);
 
   // Sync with localStorage
@@ -488,14 +493,18 @@ export default function VoiceChatPage() {
       // Premium: enforce against their purchased period quota (e.g. 9,000s for monthly)
       if (voiceQuotaSeconds > 0 && totalUsed >= voiceQuotaSeconds) {
         console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s)   ending call.`);
-        liveServiceRef.current?.endSession();
+        const service = liveServiceRef.current;
+        liveServiceRef.current = null;
+        service?.endSession();
         setLiveStatus('disconnected');
         setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
       }
     } else {
       // Free users: 120s total cap
       if (totalUsed >= 120) {
-        liveServiceRef.current?.endSession();
+        const service = liveServiceRef.current;
+        liveServiceRef.current = null;
+        service?.endSession();
         setLiveStatus('disconnected');
         setShowDemoModal(true);
       }
@@ -528,20 +537,42 @@ export default function VoiceChatPage() {
   // Toggle Live AI Call Session
   const toggleLiveCall = async () => {
     if (isCallActive) {
-      // End the session   the liveStatus useEffect will handle saving the summary
-      liveServiceRef.current?.endSession();
+      const service = liveServiceRef.current;
+      liveServiceRef.current = null;
+      service?.endSession();
       setLiveStatus('disconnected');
       return;
     }
 
+    // Synchronous quota validation pre-flight
+    let currentUsed = liveVoiceSecondsUsed;
+    let currentQuota = voiceQuotaSeconds;
+    let currentIsPremium = isPremiumUser;
+
+    if (!isQuotaLoaded && telegramId) {
+      try {
+        const data: any = await ApiService.get(API_ENDPOINTS.STUDENT_BY_TELEGRAM_ID(telegramId));
+        const d = data?.data || data;
+        currentIsPremium = d?.isMarakiPremium || d?.isPremium || false;
+        currentUsed = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
+        currentQuota = d?.voiceSecondsQuotaThisPeriod ?? (currentIsPremium ? 9000 : 120);
+        setIsPremiumUser(currentIsPremium);
+        setLiveVoiceSecondsUsed(currentUsed);
+        setVoiceQuotaSeconds(currentQuota);
+        setIsQuotaLoaded(true);
+      } catch (e) {
+        setIsQuotaLoaded(true);
+      }
+    }
+
     // Premium Quota Exhaustion Gate: Block call if user has used all purchased voice minutes
-    if (isPremiumUser && voiceQuotaSeconds > 0 && liveVoiceSecondsUsed >= voiceQuotaSeconds) {
+    if (currentIsPremium && currentQuota > 0 && currentUsed >= currentQuota) {
       setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
       return;
     }
 
     // Real Premium Validation Gate: Open Demo Video Popup if trial has ended
-    if (!isPremiumUser && liveVoiceSecondsUsed >= 120) {
+    if (!currentIsPremium && currentUsed >= 120) {
       setShowDemoModal(true);
       return;
     }

@@ -27,6 +27,7 @@ export class GeminiLiveService {
   private telegramId: number = 0;
   private sessionStartTime: number = 0;
   private isConnected: boolean = false;
+  private isDestroyed: boolean = false;
   private handlers: LiveSessionHandlers = {};
 
   constructor(telegramId: number, handlers: LiveSessionHandlers) {
@@ -34,14 +35,14 @@ export class GeminiLiveService {
     this.handlers = handlers;
     this.player = new AudioPlayer();
     this.player.onEnded(() => {
-      if (this.isConnected) {
+      if (this.isConnected && !this.isDestroyed) {
         this.handlers.onStatusChange?.('listening');
       }
     });
   }
 
   async startSession(micDeviceId?: string): Promise<void> {
-    if (this.isConnected) return;
+    if (this.isConnected || this.isDestroyed) return;
     this.handlers.onStatusChange?.('connecting');
 
     try {
@@ -52,9 +53,19 @@ export class GeminiLiveService {
         // non-blocking
       }
 
+      if (this.isDestroyed) {
+        this.handleDisconnect();
+        return;
+      }
+
       // 1. Fetch Ephemeral Token from NestJS backend endpoint
       const tokenRes: any = await ApiService.post(API_ENDPOINTS.EPHEMERAL_TOKEN);
       const token = tokenRes?.token || tokenRes?.name || '';
+
+      if (this.isDestroyed) {
+        this.handleDisconnect();
+        return;
+      }
 
       if (!token) {
         throw new Error('No valid ephemeral token received from server.');
@@ -68,11 +79,20 @@ export class GeminiLiveService {
         ? `${this.handlers.systemInstruction}\n\n## Patience & Natural Flow Rules\n- NEVER interrupt the learner while they are speaking or taking a natural pause to think. Wait until they finish their complete thought.\n- NO INFINITE CORRECTION LOOPS. Do NOT force the learner to repeat phrases or corrections over and over. If you offer a correction or suggestion once, IMMEDIATELY move on to a new conversation thought.\n- DO NOT repeatedly say "You can say...". Have a natural, friendly two-way conversation.`
         : baselineFallback;
 
+      if (this.isDestroyed) {
+        this.handleDisconnect();
+        return;
+      }
+
       // 2. Initialize GeminiLiveClient with message callbacks and custom tools
       this.client = new GeminiLiveClient({
         tools: defaultGeminiTools,
         systemInstruction: combinedInstruction,
         onStatusChange: (status) => {
+          if (this.isDestroyed) {
+            this.handleDisconnect();
+            return;
+          }
           if (status === 'connected') {
             this.isConnected = true;
             this.sessionStartTime = Date.now();
@@ -85,16 +105,26 @@ export class GeminiLiveService {
           }
         },
         onResponse: (responses: LiveResponse[]) => {
+          if (this.isDestroyed || !this.isConnected || !this.client) {
+            this.player?.destroy();
+            return;
+          }
           this.handleServerResponses(responses);
         },
         onError: (err) => {
+          if (this.isDestroyed) return;
           this.handlers.onError?.(err);
         },
       });
 
       // 3. Connect client WebSocket to Gemini Live API
       await this.client.connect(token);
+
+      if (this.isDestroyed) {
+        this.handleDisconnect();
+      }
     } catch (err: any) {
+      if (this.isDestroyed) return;
       const msg = err?.message || 'Failed to start Live AI Call';
       this.handlers.onError?.(msg);
       this.handlers.onStatusChange?.('error');
@@ -103,8 +133,8 @@ export class GeminiLiveService {
   }
 
   private handleServerResponses(responses: LiveResponse[]) {
-    if (!this.isConnected || !this.client) {
-      this.player?.stop();
+    if (this.isDestroyed || !this.isConnected || !this.client) {
+      this.player?.destroy();
       return;
     }
 
@@ -219,15 +249,16 @@ export class GeminiLiveService {
   }
 
   endSession(): void {
-    if (!this.isConnected && !this.client) return;
+    this.isDestroyed = true;
     this.handleDisconnect();
   }
 
   private handleDisconnect(): void {
-    if (!this.isConnected && !this.client) return;
+    this.isDestroyed = true;
     this.isConnected = false;
 
     const durationSeconds = this.sessionStartTime > 0 ? (Date.now() - this.sessionStartTime) / 1000 : 0;
+    this.sessionStartTime = 0;
 
     if (this.streamer) {
       try { this.streamer.destroy(); } catch (e) {}
