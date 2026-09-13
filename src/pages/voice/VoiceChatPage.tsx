@@ -534,6 +534,12 @@ export default function VoiceChatPage() {
       return;
     }
 
+    // Premium Quota Exhaustion Gate: Block call if user has used all purchased voice minutes
+    if (isPremiumUser && voiceQuotaSeconds > 0 && liveVoiceSecondsUsed >= voiceQuotaSeconds) {
+      setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
+      return;
+    }
+
     // Real Premium Validation Gate: Open Demo Video Popup if trial has ended
     if (!isPremiumUser && liveVoiceSecondsUsed >= 120) {
       setShowDemoModal(true);

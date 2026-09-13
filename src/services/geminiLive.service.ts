@@ -103,7 +103,16 @@ export class GeminiLiveService {
   }
 
   private handleServerResponses(responses: LiveResponse[]) {
+    if (!this.isConnected || !this.client) {
+      this.player?.stop();
+      return;
+    }
+
     for (const res of responses) {
+      if (!this.isConnected || !this.client) {
+        this.player?.stop();
+        return;
+      }
       switch (res.type) {
         case MultimodalLiveResponseType.AUDIO:
           if (res.data) {
@@ -220,10 +229,15 @@ export class GeminiLiveService {
 
     const durationSeconds = this.sessionStartTime > 0 ? (Date.now() - this.sessionStartTime) / 1000 : 0;
 
-    this.streamer?.stop();
-    this.streamer = null;
-    this.player?.stop();
-    this.player = null;
+    if (this.streamer) {
+      try { this.streamer.destroy(); } catch (e) {}
+      this.streamer = null;
+    }
+
+    if (this.player) {
+      try { this.player.destroy(); } catch (e) {}
+      this.player = null;
+    }
 
     this.stopCamera();
     this.stopScreenShare();
@@ -232,7 +246,9 @@ export class GeminiLiveService {
     this.client = null;
 
     if (clientToClose) {
-      clientToClose.disconnect();
+      try {
+        clientToClose.disconnect();
+      } catch (e) {}
     }
 
     this.handlers.onStatusChange?.('disconnected');
