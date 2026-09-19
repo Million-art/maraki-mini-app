@@ -6,10 +6,8 @@ import {
   PhoneOff,
   Mic,
   Phone,
-  MicOff,
   MessageSquare,
   Send,
-  Disc,
   Crown
 } from 'lucide-react';
 import DemoVideoModal from '../../components/DemoVideoModal';
@@ -133,12 +131,8 @@ export default function VoiceChatPage() {
   });
 
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [textInputValue, setTextInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
-
-  // Audio Controls
-  const [isMuted, setIsMuted] = useState(false);
 
   // Gemini Live API States
   const [liveStatus, setLiveStatus] = useState<
@@ -1121,8 +1115,8 @@ export default function VoiceChatPage() {
         {/* Bottom Call Control Panel (Only visible in Voice mode) */}
         {!isTranscriptOpen && (
           <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
-            <div className="max-w-md mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-8 py-3.5 flex items-center justify-between">
-              {/* 1. Center Call / End Button (Now on Left) */}
+            <div className="max-w-xs mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-10 py-3.5 flex items-center justify-around">
+              {/* 1. Call / End Call Button */}
               <div className="flex flex-col items-center gap-1 w-14 relative">
                 {!isCallActive && (
                   <div className="absolute top-0 w-14 h-14 rounded-full bg-[#16A34A] animate-ping opacity-40 pointer-events-none" />
@@ -1148,67 +1142,7 @@ export default function VoiceChatPage() {
                 </span>
               </div>
 
-              {/* 1.5. Record Button */}
-              <div className="flex flex-col items-center gap-1 w-14">
-                <button
-                  disabled={!isCallActive}
-                  onClick={() => setIsRecording(!isRecording)}
-                  className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
-                    !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
-                    isCallActive && isRecording
-                      ? 'border-red-500/40 bg-red-50 text-red-500 animate-pulse'
-                      : isCallActive && !isRecording
-                        ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                        : 'text-gray-400',
-                  )}
-                  aria-label="Record conversation"
-                >
-                  <Disc className={cn("w-5 h-5", !isCallActive ? "text-gray-400" : isRecording ? "text-red-500" : "text-gray-700")} />
-                </button>
-                <span className={cn(
-                  "text-[10px] font-semibold animate-fadeIn",
-                  !isCallActive ? "text-gray-300" : "text-gray-500"
-                )}>Record</span>
-              </div>
-
-              {/* 2. Mute Button Placeholder/Container (Now in Center) */}
-              <div className="flex flex-col items-center gap-1 w-14">
-                <>
-                  <button
-                    disabled={!isCallActive}
-                    onClick={() => {
-                      const newMutedState = !isMuted;
-                      setIsMuted(newMutedState);
-                      if (liveServiceRef.current) {
-                        liveServiceRef.current.setMuted(newMutedState);
-                      }
-                    }}
-                    className={cn(
-                      'w-11 h-11 rounded-full flex items-center justify-center transition-all border animate-fadeIn',
-                      !isCallActive ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50' : '',
-                      isCallActive && isMuted
-                        ? 'border-red-500/40 bg-red-50 text-red-500'
-                        : isCallActive && !isMuted
-                          ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                          : 'text-gray-400',
-                    )}
-                    aria-label="Mute microphone"
-                  >
-                    {isMuted && isCallActive ? (
-                      <MicOff className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <Mic className={cn("w-5 h-5 stroke-[2.2]", !isCallActive ? "text-gray-400" : "text-gray-700")} />
-                    )}
-                  </button>
-                  <span className={cn(
-                    "text-[10px] font-semibold animate-fadeIn",
-                    !isCallActive ? "text-gray-300" : "text-gray-500"
-                  )}>Mute</span>
-                </>
-              </div>
-
-              {/* 3. Text / Chat Mode Toggle Button */}
+              {/* 2. Text / Chat Mode Toggle Button */}
               <div className="flex flex-col items-center gap-1 w-14">
                 <button
                   onClick={() => setIsTranscriptOpen(true)}
