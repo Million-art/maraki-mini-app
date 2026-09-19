@@ -59,7 +59,7 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <nav
-      className="w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-3 py-2 z-50 shrink-0 shadow-[0_-4px_25px_rgba(0,0,0,0.04)]"
+      className="w-full bg-white border-t border-gray-100 px-3 py-2 z-50 shrink-0"
       aria-label="Global Navigation"
     >
       <div className="max-w-md mx-auto flex items-center justify-around">
@@ -76,7 +76,7 @@ export const BottomNavigation: React.FC = () => {
               key={item.id}
               onClick={() => navigate(item.path)}
               className={cn(
-                'relative flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 group active:scale-95',
+                'relative flex flex-col items-center justify-center py-1.5 px-3.5 rounded-xl transition-all duration-200 group active:scale-95',
                 isActive ? 'text-[#22C55E]' : 'text-gray-400 hover:text-gray-600'
               )}
             >
@@ -84,7 +84,7 @@ export const BottomNavigation: React.FC = () => {
               {isActive && (
                 <motion.div
                   layoutId="activeNavTab"
-                  className="absolute inset-0 bg-[#22C55E]/10 rounded-2xl -z-10"
+                  className="absolute inset-0 bg-gray-100 rounded-xl -z-10"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -93,7 +93,7 @@ export const BottomNavigation: React.FC = () => {
                 <IconComponent
                   className={cn(
                     'w-5 h-5 transition-transform duration-200',
-                    isActive ? 'scale-110 stroke-[2.5]' : 'stroke-2 group-hover:scale-105'
+                    isActive ? 'scale-105 stroke-[2.5]' : 'stroke-2 group-hover:scale-105'
                   )}
                 />
 
@@ -101,7 +101,7 @@ export const BottomNavigation: React.FC = () => {
                 {item.badge && !isActive && (
                   <span
                     className={cn(
-                      'absolute -top-1.5 -right-3 text-[8px] font-bold px-1 py-0.2 rounded-full border leading-tight shadow-2xs',
+                      'absolute -top-1.5 -right-3 text-[8px] font-bold px-1 py-0.2 rounded-full border leading-tight',
                       item.badgeColor || 'bg-gray-100 text-gray-600 border-gray-200'
                     )}
                   >

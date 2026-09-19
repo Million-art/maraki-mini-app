@@ -24,10 +24,11 @@ interface ComingSoonConfig {
   amharicDescription: string;
   features: Array<{ icon: React.ElementType; title: string; desc: string }>;
   icon: React.ElementType;
-  gradient: string;
-  glowColor: string;
-  badgeColor: string;
-  accentColor: string;
+  iconBg: string;
+  iconColor: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
 }
 
 const configs: Record<ComingSoonType, ComingSoonConfig> = {
@@ -54,10 +55,11 @@ const configs: Record<ComingSoonType, ComingSoonConfig> = {
       },
     ],
     icon: GraduationCap,
-    gradient: 'from-purple-500 via-indigo-500 to-blue-600',
-    glowColor: 'bg-purple-500/20',
-    badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
-    accentColor: '#7C3AED',
+    iconBg: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-700',
+    badgeBorder: 'border-purple-200',
   },
   ielts: {
     title: 'IELTS Academic & General Prep',
@@ -82,10 +84,11 @@ const configs: Record<ComingSoonType, ComingSoonConfig> = {
       },
     ],
     icon: Globe2,
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
-    glowColor: 'bg-emerald-500/20',
-    badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    accentColor: '#059669',
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-700',
+    badgeBorder: 'border-emerald-200',
   },
   sat: {
     title: 'Digital SAT AI Mastery',
@@ -110,10 +113,11 @@ const configs: Record<ComingSoonType, ComingSoonConfig> = {
       },
     ],
     icon: Sparkles,
-    gradient: 'from-amber-500 via-orange-500 to-rose-600',
-    glowColor: 'bg-orange-500/20',
-    badgeColor: 'bg-orange-100 text-orange-700 border-orange-200',
-    accentColor: '#EA580C',
+    iconBg: 'bg-orange-50',
+    iconColor: 'text-[#FF5500]',
+    badgeBg: 'bg-orange-50',
+    badgeText: 'text-orange-700',
+    badgeBorder: 'border-orange-200',
   },
 };
 
@@ -138,13 +142,13 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
   const IconComponent = config.icon;
 
   return (
-    <div className="flex flex-col h-full w-full bg-white text-gray-900 font-sans select-none overflow-y-auto no-scrollbar relative">
-      {/* Top Header */}
-      <header className="px-6 py-4 flex items-center justify-between shrink-0 border-b border-gray-50 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+    <div className="flex flex-col h-full w-full bg-white text-gray-900 font-sans select-none overflow-y-auto no-scrollbar">
+      {/* Clean Top Header */}
+      <header className="px-6 py-4 flex items-center justify-between shrink-0 border-b border-gray-100 bg-white sticky top-0 z-20">
         <div>
           <h1 className="font-extrabold text-base text-gray-900 leading-tight flex items-center gap-2">
             Maraki AI
-            <span className={cn('text-[9px] font-bold px-2 py-0.5 rounded-full border', config.badgeColor)}>
+            <span className={cn('text-[9px] font-bold px-2 py-0.5 rounded-full border', config.badgeBg, config.badgeText, config.badgeBorder)}>
               COMING SOON
             </span>
           </h1>
@@ -155,50 +159,21 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
       </header>
 
       {/* Main Centered Stage */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 relative">
-        {/* Background Glowing Orb */}
-        <motion.div
-          animate={{
-            scale: [1, 1.25, 1],
-            opacity: [0.35, 0.7, 0.35],
-          }}
-          transition={{
-            repeat: Infinity,
-            duration: 4,
-            ease: 'easeInOut',
-          }}
-          className={cn('absolute w-72 h-72 rounded-full blur-[48px] pointer-events-none', config.glowColor)}
-        />
-
-        {/* Floating Animated Mascot / Icon Badge */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+        {/* Animated Icon Badge */}
         <div className="relative mb-6">
           <motion.div
-            animate={{
-              rotate: [0, 360],
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: 20,
-              ease: 'linear',
-            }}
-            className={cn(
-              'absolute -inset-3 rounded-full bg-gradient-to-r opacity-50 blur-md',
-              config.gradient
-            )}
-          />
-
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
             className={cn(
-              'relative w-24 h-24 rounded-full bg-gradient-to-br flex items-center justify-center text-white shadow-xl',
-              config.gradient
+              'w-20 h-20 rounded-2xl flex items-center justify-center border border-gray-200',
+              config.iconBg
             )}
           >
             <motion.div
               animate={{
-                y: [0, -6, 0],
+                y: [0, -4, 0],
               }}
               transition={{
                 repeat: Infinity,
@@ -206,14 +181,14 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
                 ease: 'easeInOut',
               }}
             >
-              <IconComponent className="w-12 h-12 stroke-[2.2] drop-shadow-md" />
+              <IconComponent className={cn('w-10 h-10 stroke-[2.2]', config.iconColor)} />
             </motion.div>
           </motion.div>
         </div>
 
         {/* Title & Badge */}
         <div className="text-center space-y-2 max-w-sm">
-          <span className={cn('inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border shadow-2xs', config.badgeColor)}>
+          <span className={cn('inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border', config.badgeBg, config.badgeText, config.badgeBorder)}>
             {config.badge}
           </span>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">
@@ -222,49 +197,51 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
           <p className="text-xs text-gray-600 font-medium leading-relaxed">
             {config.subtitle}
           </p>
-          <p className="text-[11px] text-gray-500 font-semibold bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+          <p className="text-[11px] text-gray-600 font-medium bg-gray-50 p-2.5 rounded-xl border border-gray-100">
             🇪🇹 {config.amharicDescription}
           </p>
         </div>
 
-        {/* Feature Cards List */}
+        {/* Feature Cards List (Flat, Clean) */}
         <div className="w-full max-w-sm space-y-2.5 my-6">
           {config.features.map((feat, idx) => {
             const FeatIcon = feat.icon;
             return (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * idx, duration: 0.3 }}
-                className="flex items-start gap-3 p-3 rounded-2xl bg-white border border-gray-100 shadow-2xs hover:border-gray-200 transition-all"
+                transition={{ delay: 0.08 * idx, duration: 0.25 }}
+                className="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-200"
               >
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs"
-                  style={{ backgroundColor: `${config.accentColor}15`, color: config.accentColor }}
+                  className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-gray-100',
+                    config.iconBg,
+                    config.iconColor
+                  )}
                 >
-                  <FeatIcon className="w-4 h-4 stroke-[2.5]" />
+                  <FeatIcon className="w-4 h-4 stroke-[2.2]" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-900">{feat.title}</h4>
-                  <p className="text-[10px] text-gray-500 leading-snug mt-0.5">{feat.desc}</p>
+                  <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{feat.desc}</p>
                 </div>
               </motion.div>
             );
           })}
         </div>
 
-        {/* Notification / Waitlist Action */}
-        <div className="w-full max-w-sm space-y-3">
+        {/* Notification / Waitlist Action (Flat Solid Brand Buttons) */}
+        <div className="w-full max-w-sm space-y-2.5">
           <button
             onClick={handleNotifyMe}
             disabled={isNotified}
             className={cn(
-              'w-full py-3.5 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]',
+              'w-full py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99]',
               isNotified
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-                : 'bg-gradient-to-r text-white hover:opacity-95 shadow-orange-500/20',
-              !isNotified && config.gradient
+                : 'bg-[#FF5500] hover:bg-[#E64D00] text-white'
             )}
           >
             {isNotified ? (
@@ -282,7 +259,7 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
 
           <button
             onClick={() => navigate('/')}
-            className="w-full py-3 px-4 rounded-2xl font-semibold text-xs text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all flex items-center justify-center gap-1.5"
           >
             <span>🎙️ Practice Live Voice Coach in the meantime</span>
             <ChevronRight className="w-3.5 h-3.5" />
