@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { store } from "./store";
 import Layout from "./components/layout/Layout";
 import VoiceChatPage from "./pages/voice/VoiceChatPage";
+import ComingSoonPage from "./pages/coming-soon/ComingSoonPage";
 import mascotGif from "./assets/mascot.gif";
 
 export default function App() {
@@ -91,6 +92,10 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<VoiceChatPage />} />
+                  <Route path="voice" element={<VoiceChatPage />} />
+                  <Route path="exam" element={<ComingSoonPage type="exam" />} />
+                  <Route path="ielts" element={<ComingSoonPage type="ielts" />} />
+                  <Route path="sat" element={<ComingSoonPage type="sat" />} />
                   <Route path="*" element={<VoiceChatPage />} />
                 </Route>
               </Routes>
