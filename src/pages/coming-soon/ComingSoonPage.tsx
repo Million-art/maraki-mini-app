@@ -104,8 +104,11 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
       {/* Minimal Header */}
       <header className="px-6 py-4 flex items-center justify-between shrink-0 border-b border-gray-100 bg-white sticky top-0 z-20">
         <div>
-          <h1 className="font-extrabold text-base text-gray-900 leading-tight">
+          <h1 className="font-extrabold text-base text-gray-900 leading-tight flex items-center gap-2">
             Maraki AI
+            <div className="flex items-center px-2 py-0.5 bg-gray-100 rounded border border-gray-200 text-[9px] font-bold text-gray-500">
+              COMING SOON
+            </div>
           </h1>
           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mt-0.5">
             EXAM PREP ACADEMY
