@@ -261,7 +261,7 @@ export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => 
             onClick={() => navigate('/')}
             className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all flex items-center justify-center gap-1.5"
           >
-            <span>🎙️ Practice Live Voice Coach in the meantime</span>
+            <span>🎙️ Practice Speaking in the meantime</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

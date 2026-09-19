@@ -20,8 +20,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    id: 'voice',
-    label: 'Voice',
+    id: 'speaking',
+    label: 'Speaking',
     path: '/',
     icon: Mic,
   },
