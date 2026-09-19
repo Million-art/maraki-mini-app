@@ -880,10 +880,10 @@ export default function VoiceChatPage() {
 
 
         {/* Center Stage Mascot Avatar & Video Preview Stage */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-2 sm:p-6 relative min-h-0 overflow-hidden">
           {/* Live Error Notification */}
           {liveError && (
-            <div className="absolute top-4 inset-x-4 max-w-md mx-auto bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-xs shadow-lg z-30 animate-fadeIn flex justify-between items-center">
+            <div className="absolute top-2 inset-x-4 max-w-md mx-auto bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-xs z-30 animate-fadeIn flex justify-between items-center">
               <span className="font-semibold text-[11px] leading-snug">{liveError}</span>
               <button onClick={() => setLiveError(null)} className="text-amber-600 font-extrabold text-sm ml-2 px-1">
                 ✕
@@ -900,9 +900,9 @@ export default function VoiceChatPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className="mb-3.5 w-full max-w-xs sm:max-w-md mx-auto px-4 py-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300/90 backdrop-blur-md rounded-2xl shadow-md text-center z-20"
+                className="mb-2 w-full max-w-xs sm:max-w-md mx-auto px-4 py-2.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-center z-20"
               >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <p className="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider">
@@ -923,7 +923,7 @@ export default function VoiceChatPage() {
                       setStuckSuggestion('');
                     }
                   }}
-                  className="text-xs sm:text-sm font-semibold text-gray-800 bg-white/95 border border-emerald-200/90 p-2.5 rounded-xl shadow-2xs leading-relaxed cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all active:scale-[0.99]"
+                  className="text-xs sm:text-sm font-semibold text-gray-800 bg-white border border-emerald-200 p-2 rounded-xl leading-relaxed cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all active:scale-[0.99]"
                 >
                   "{stuckSuggestion}"
                 </p>
@@ -932,45 +932,7 @@ export default function VoiceChatPage() {
           </AnimatePresence>
 
           {/* Mascot Stage */}
-          <div className="relative flex items-center justify-center w-[16rem] h-[16rem] sm:w-[20rem] sm:h-[20rem] md:w-[24rem] md:h-[24rem] transition-all">
-            {/* 1. Speaking State: Expands dynamically with speech */}
-            {liveStatus === 'speaking' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.3, 0.8, 0.4, 0.9, 0.3], scale: [0.95, 1.2, 1.05, 1.25, 0.95] }}
-                transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#22C55E]/30 via-[#10B981]/40 to-[#22C55E]/30 blur-[32px] pointer-events-none"
-              />
-            )}
-
-            {/* 2. Thinking State: Purple/Orange Pulse */}
-            {liveStatus === 'thinking' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: [0.2, 0.7, 0.2], scale: [0.95, 1.1, 0.95], rotate: [0, 90, 180] }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 via-orange-400/20 to-purple-500/20 blur-2xl pointer-events-none"
-              />
-            )}
-
-            {/* 3. Listening State: Fast energetic pulse simulating mic input */}
-            {liveStatus === 'listening' && (
-              <motion.div
-                animate={{ opacity: [0.3, 0.8, 0.2, 0.6, 0.3], scale: [0.98, 1.15, 1.0, 1.1, 0.98] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-                className="absolute inset-0 rounded-full bg-[#7CBD00]/30 blur-2xl pointer-events-none"
-              />
-            )}
-
-            {/* 4. Idle / Connected State: Soft breathing green glow */}
-            {(!isCallActive || liveStatus === 'connected' || liveStatus === 'connecting') && (
-              <motion.div
-                animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
-                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                className="absolute w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] rounded-full bg-[#7CBD00]/10 blur-[24px] pointer-events-none"
-              />
-            )}
-
+          <div className="relative flex items-center justify-center w-[13rem] h-[13rem] sm:w-[16rem] sm:h-[16rem] transition-all">
             {/* Subtle Floating Particles */}
             <FloatingParticles />
 
@@ -980,12 +942,12 @@ export default function VoiceChatPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-[16rem] h-[16rem] sm:w-[20rem] sm:h-[20rem] md:w-[24rem] md:h-[24rem] flex items-center justify-center"
+              className="relative w-[13rem] h-[13rem] sm:w-[16rem] sm:h-[16rem] flex items-center justify-center"
             >
               <img
                 src={getMascotAsset()}
                 alt="Maraki AI Mascot"
-                className="w-full h-full object-contain drop-shadow-xl select-none"
+                className="w-full h-full object-contain select-none"
               />
             </motion.div>
           </div>
@@ -1112,48 +1074,43 @@ export default function VoiceChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Bottom Call Control Panel (Only visible in Voice mode) */}
+        {/* Bottom Call & Chat Action Buttons directly on the voice page */}
         {!isTranscriptOpen && (
-          <div className="px-4 pt-2 pb-14 sm:pb-10 md:pb-8 shrink-0 z-40 mb-4">
-            <div className="max-w-xs mx-auto bg-white border border-gray-100 shadow-[0_10px_35px_rgba(0,0,0,0.06)] rounded-full px-10 py-3.5 flex items-center justify-around">
-              {/* 1. Call / End Call Button */}
-              <div className="flex flex-col items-center gap-1 w-14 relative">
-                {!isCallActive && (
-                  <div className="absolute top-0 w-14 h-14 rounded-full bg-[#16A34A] animate-ping opacity-40 pointer-events-none" />
+          <div className="w-full max-w-xs mx-auto px-6 pt-1 pb-3 flex items-center justify-center gap-10 shrink-0 z-30">
+            {/* 1. Call / End Call Button */}
+            <div className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={() => toggleLiveCall()}
+                className={cn(
+                  'w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2',
+                  isCallActive
+                    ? 'bg-[#FF3B30] border-red-200'
+                    : 'bg-[#22C55E] border-emerald-200'
                 )}
-                <button
-                  onClick={() => toggleLiveCall()}
-                  className={cn(
-                    'w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 relative z-10',
-                    isCallActive
-                      ? 'bg-[#FF3B30] border-red-100 shadow-red-500/30 ring-2 ring-red-500/20'
-                      : 'bg-[#16A34A] border-emerald-100 shadow-green-600/30 ring-2 ring-emerald-500/20'
-                  )}
-                  aria-label={isCallActive ? "End voice call" : "Start voice call"}
-                >
-                  {isCallActive ? (
-                    <PhoneOff className="w-6 h-6 text-white stroke-[2.5]" />
-                  ) : (
-                    <Phone className="w-6 h-6 text-white stroke-[2.5] fill-current" />
-                  )}
-                </button>
-                <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">
-                  {isCallActive ? 'End Call' : 'Call'}
-                </span>
-              </div>
+                aria-label={isCallActive ? "End voice call" : "Start voice call"}
+              >
+                {isCallActive ? (
+                  <PhoneOff className="w-6 h-6 text-white stroke-[2.5]" />
+                ) : (
+                  <Phone className="w-6 h-6 text-white stroke-[2.5] fill-current" />
+                )}
+              </button>
+              <span className="text-[11px] font-bold text-gray-600">
+                {isCallActive ? 'End Call' : 'Call'}
+              </span>
+            </div>
 
-              {/* 2. Text / Chat Mode Toggle Button */}
-              <div className="flex flex-col items-center gap-1 w-14">
-                <button
-                  onClick={() => setIsTranscriptOpen(true)}
-                  className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105 border-4 bg-[#FF5500] border-orange-100 shadow-orange-500/30 ring-2 ring-orange-500/20"
-                  aria-label="Toggle text mode"
-                  title="Toggle Text Mode"
-                >
-                  <MessageSquare className="w-6 h-6 text-white stroke-[2.5] fill-current" />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-500 animate-fadeIn">Chat</span>
-              </div>
+            {/* 2. Text / Chat Mode Toggle Button */}
+            <div className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={() => setIsTranscriptOpen(true)}
+                className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2 bg-[#FF5500] border-orange-200"
+                aria-label="Toggle text mode"
+                title="Toggle Text Mode"
+              >
+                <MessageSquare className="w-6 h-6 text-white stroke-[2.5] fill-current" />
+              </button>
+              <span className="text-[11px] font-bold text-gray-600">Chat</span>
             </div>
           </div>
         )}
