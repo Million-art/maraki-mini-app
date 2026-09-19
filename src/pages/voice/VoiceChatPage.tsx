@@ -7,8 +7,7 @@ import {
   Mic,
   Phone,
   MessageSquare,
-  Send,
-  Crown
+  Send
 } from 'lucide-react';
 import DemoVideoModal from '../../components/DemoVideoModal';
 import { cn } from '../../lib/utils';
@@ -843,12 +842,11 @@ export default function VoiceChatPage() {
               <h1 className="font-extrabold text-base text-gray-900 leading-tight flex items-center gap-2">
                 Maraki AI
                 {isPremiumUser ? (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded text-[9px] font-bold text-white shadow-sm">
-                    <Crown className="w-3 h-3 text-white" strokeWidth={3} />
-                    <span>PREMIUM</span>
+                  <div className="flex items-center px-2 py-0.5 bg-[#FF5500] rounded text-[9px] font-bold text-white">
+                    PREMIUM
                   </div>
                 ) : (
-                  <div className="flex items-center px-2 py-0.5 bg-gray-100 rounded border border-gray-200 text-[9px] font-bold text-gray-400">
+                  <div className="flex items-center px-2 py-0.5 bg-gray-100 rounded border border-gray-200 text-[9px] font-bold text-gray-500">
                     FREEMIUM
                   </div>
                 )}

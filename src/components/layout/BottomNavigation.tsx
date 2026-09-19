@@ -14,8 +14,6 @@ interface NavItem {
   label: string;
   path: string;
   icon: React.ElementType;
-  badge?: string;
-  badgeColor?: string;
 }
 
 const navItems: NavItem[] = [
@@ -30,24 +28,18 @@ const navItems: NavItem[] = [
     label: 'Exam',
     path: '/exam',
     icon: GraduationCap,
-    badge: 'Soon',
-    badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
   },
   {
     id: 'ielts',
     label: 'IELTS',
     path: '/ielts',
     icon: Globe2,
-    badge: 'Soon',
-    badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   },
   {
     id: 'sat',
     label: 'SAT',
     path: '/sat',
     icon: Sparkles,
-    badge: 'Soon',
-    badgeColor: 'bg-orange-100 text-orange-700 border-orange-200',
   },
 ];
 
@@ -89,26 +81,12 @@ export const BottomNavigation: React.FC = () => {
                 />
               )}
 
-              <div className="relative flex items-center justify-center">
-                <IconComponent
-                  className={cn(
-                    'w-5 h-5 transition-transform duration-200',
-                    isActive ? 'scale-105 stroke-[2.5]' : 'stroke-2 group-hover:scale-105'
-                  )}
-                />
-
-                {/* Coming Soon Pill Badge */}
-                {item.badge && !isActive && (
-                  <span
-                    className={cn(
-                      'absolute -top-1.5 -right-3 text-[8px] font-bold px-1 py-0.2 rounded-full border leading-tight',
-                      item.badgeColor || 'bg-gray-100 text-gray-600 border-gray-200'
-                    )}
-                  >
-                    {item.badge}
-                  </span>
+              <IconComponent
+                className={cn(
+                  'w-5 h-5 transition-transform duration-200',
+                  isActive ? 'scale-105 stroke-[2.5]' : 'stroke-2 group-hover:scale-105'
                 )}
-              </div>
+              />
 
               <span
                 className={cn(
