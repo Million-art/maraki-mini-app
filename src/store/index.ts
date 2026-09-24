@@ -1,13 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
-import materialsReducer from './slices/materialsSlice';
-import quizzesReducer from './slices/quizzesSlice';
 import uiReducer from './slices/uiSlice';
 import studentReducer from './slices/studentSlice';
 
 export const store = configureStore({
   reducer: {
-    materials: materialsReducer,
-    quizzes: quizzesReducer,
     ui: uiReducer,
     student: studentReducer,
   },
