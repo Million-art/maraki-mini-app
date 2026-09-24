@@ -7,9 +7,14 @@ import {
   Mic,
   Phone,
   MessageSquare,
-  Send
+  Send,
+  Disc,
+  Square,
+  Radio,
 } from 'lucide-react';
 import DemoVideoModal from '../../components/DemoVideoModal';
+import RecordedSessionModal from '../../components/RecordedSessionModal';
+import { AudioRecordingSession } from '../../utils/audioRecorder.util';
 import { cn } from '../../lib/utils';
 import { retrieveLaunchParams, postEvent, on } from '@tma.js/sdk';
 import { buildSessionInstruction } from '../../services/coachingOrchestrator';
@@ -145,6 +150,58 @@ export default function VoiceChatPage() {
   const [isQuotaLoaded, setIsQuotaLoaded] = useState<boolean>(false);
   const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
+
+  // Audio Recording State
+  const audioRecorderRef = useRef<AudioRecordingSession | null>(null);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordedDuration, setRecordedDuration] = useState<number>(0);
+  const [isRecordedModalOpen, setIsRecordedModalOpen] = useState<boolean>(false);
+
+  // Recording timer effect
+  useEffect(() => {
+    let timer: any;
+    if (isRecording) {
+      timer = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRecording]);
+
+  const startRecording = () => {
+    const session = new AudioRecordingSession(24000);
+    session.start();
+    audioRecorderRef.current = session;
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (!audioRecorderRef.current) {
+      setIsRecording(false);
+      return;
+    }
+    const result = audioRecorderRef.current.stop();
+    setIsRecording(false);
+    if (result && result.blob.size > 100) {
+      setRecordedAudioUrl(result.url);
+      setRecordedDuration(result.durationSeconds);
+      setIsRecordedModalOpen(true);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   const handleUpgradeClick = () => {
     const botUsername = import.meta.env.VITE_BOT_USERNAME || 'marakiai_bot';
@@ -384,6 +441,17 @@ export default function VoiceChatPage() {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
       const duration = callDurationRef.current;
 
+      // Auto-save recording if active
+      if (audioRecorderRef.current?.getIsRecording()) {
+        const result = audioRecorderRef.current.stop();
+        setIsRecording(false);
+        if (result && result.blob.size > 100) {
+          setRecordedAudioUrl(result.url);
+          setRecordedDuration(result.durationSeconds);
+          setIsRecordedModalOpen(true);
+        }
+      }
+
       // Accumulate used seconds locally for ALL users (free + premium)
       if (duration > 0) {
         setLiveVoiceSecondsUsed((prev) => prev + duration);
@@ -571,6 +639,11 @@ export default function VoiceChatPage() {
       systemInstruction,
       onStatusChange: (status) => {
         setLiveStatus(status);
+      },
+      onAudioChunkReceived: (chunk) => {
+        if (audioRecorderRef.current?.getIsRecording()) {
+          audioRecorderRef.current.addBase64Chunk(chunk);
+        }
       },
       onTranscriptReceived: (sender, text) => {
         if (!text || !text.trim()) return;
@@ -839,6 +912,28 @@ export default function VoiceChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {isRecording && (
+              <button
+                onClick={stopRecording}
+                className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full text-red-600 font-bold text-xs animate-pulse hover:bg-red-500/20 transition-all cursor-pointer"
+                title="Click to stop and save recording"
+              >
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                <span>REC {formatTimer(recordingSeconds)}</span>
+              </button>
+            )}
+
+            {!isRecording && recordedAudioUrl && (
+              <button
+                onClick={() => setIsRecordedModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-[#7CBD00]/15 border border-[#7CBD00]/40 rounded-full text-[#7CBD00] font-bold text-xs hover:bg-[#7CBD00]/25 transition-all cursor-pointer shadow-xs"
+                title="View recorded audio"
+              >
+                <Disc className="w-3.5 h-3.5" />
+                <span>Audio ({formatTimer(recordedDuration)})</span>
+              </button>
+            )}
+
             {tgUser && (
               <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50/80 rounded-full border border-gray-100 shadow-xs animate-fadeIn">
                 <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate pl-1">
@@ -1053,15 +1148,15 @@ export default function VoiceChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Bottom Call & Chat Action Buttons directly on the voice page */}
+        {/* Bottom Call, Record & Chat Action Buttons directly on the voice page */}
         {!isTranscriptOpen && (
-          <div className="w-full max-w-xs mx-auto px-6 pt-1 pb-3 flex items-center justify-center gap-10 shrink-0 z-30">
+          <div className="w-full max-w-xs mx-auto px-4 pt-1 pb-3 flex items-center justify-center gap-6 shrink-0 z-30">
             {/* 1. Call / End Call Button */}
             <div className="flex flex-col items-center gap-1.5">
               <button
                 onClick={() => toggleLiveCall()}
                 className={cn(
-                  'w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2',
+                  'w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2 shadow-sm cursor-pointer',
                   isCallActive
                     ? 'bg-[#FF3B30] border-red-200'
                     : 'bg-[#22C55E] border-emerald-200'
@@ -1079,11 +1174,40 @@ export default function VoiceChatPage() {
               </span>
             </div>
 
-            {/* 2. Text / Chat Mode Toggle Button */}
+            {/* 2. Record Session Button */}
+            <div className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={toggleRecording}
+                className={cn(
+                  'w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 border-2 shadow-sm cursor-pointer',
+                  isRecording
+                    ? 'bg-red-500 border-red-300 text-white animate-pulse'
+                    : recordedAudioUrl
+                    ? 'bg-[#7CBD00]/15 border-[#7CBD00] text-[#7CBD00]'
+                    : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200'
+                )}
+                aria-label={isRecording ? "Stop recording" : "Record AI Speech"}
+                title={isRecording ? "Stop Recording" : "Record AI Speech"}
+              >
+                {isRecording ? (
+                  <Square className="w-5 h-5 fill-white text-white" />
+                ) : (
+                  <div className="relative flex items-center justify-center">
+                    <Radio className="w-6 h-6 text-red-500" />
+                    <span className="absolute w-2 h-2 rounded-full bg-red-500" />
+                  </div>
+                )}
+              </button>
+              <span className="text-[11px] font-bold text-gray-600">
+                {isRecording ? formatTimer(recordingSeconds) : 'Record'}
+              </span>
+            </div>
+
+            {/* 3. Text / Chat Mode Toggle Button */}
             <div className="flex flex-col items-center gap-1.5">
               <button
                 onClick={() => setIsTranscriptOpen(true)}
-                className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2 bg-[#FF5500] border-orange-200"
+                className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all active:scale-95 border-2 bg-[#FF5500] border-orange-200 shadow-sm cursor-pointer"
                 aria-label="Toggle text mode"
                 title="Toggle Text Mode"
               >
@@ -1094,8 +1218,6 @@ export default function VoiceChatPage() {
           </div>
         )}
 
-
-
         {/* Demo Video Modal for Non-VIP Users */}
         <DemoVideoModal
           isOpen={showDemoModal}
@@ -1104,6 +1226,15 @@ export default function VoiceChatPage() {
             setShowDemoModal(false);
             handleUpgradeClick();
           }}
+        />
+
+        {/* Recorded Audio Modal */}
+        <RecordedSessionModal
+          isOpen={isRecordedModalOpen}
+          onClose={() => setIsRecordedModalOpen(false)}
+          audioUrl={recordedAudioUrl}
+          durationSeconds={recordedDuration}
+          transcriptMessages={messages}
         />
       </div>
     </div>

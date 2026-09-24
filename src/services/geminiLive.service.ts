@@ -14,6 +14,7 @@ import { UsageQueue } from '../utils/usageQueue.util';
 export interface LiveSessionHandlers {
   onStatusChange?: (status: 'connecting' | 'connected' | 'speaking' | 'listening' | 'thinking' | 'error' | 'disconnected') => void;
   onTranscriptReceived?: (sender: 'user' | 'ai', text: string, isFinal?: boolean) => void;
+  onAudioChunkReceived?: (base64Data: string) => void;
   onError?: (errMessage: string) => void;
   systemInstruction?: string;
 }
@@ -153,6 +154,7 @@ export class GeminiLiveService {
         case MultimodalLiveResponseType.AUDIO:
           if (res.data) {
             this.handlers.onStatusChange?.('speaking');
+            this.handlers.onAudioChunkReceived?.(res.data);
             this.player?.playChunk(res.data);
           }
           break;
