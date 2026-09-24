@@ -239,20 +239,10 @@ export default function VoiceChatPage() {
   const isFullyConnected = liveStatus === 'listening' || liveStatus === 'speaking' || liveStatus === 'thinking';
   const isCallActive = liveStatus !== 'disconnected' && liveStatus !== 'error' && !liveError;
 
-  const sessionErrorsRef = useRef<any[]>([]);
-
   // Listen for Grammar Mistakes reported by Gemini Tools
   useEffect(() => {
     const handleGrammarMistake = (e: any) => {
       const data = e.detail;
-      sessionErrorsRef.current.push({
-        errorType: data.errorType || data.mistakeType || 'grammar',
-        errorSubtype: data.errorSubtype || null,
-        userSaid: data.userSaid || data.originalText || '',
-        correctForm: data.correctForm || data.correctedText || '',
-        explanation: data.explanation || '',
-        timestamp: data.timestamp || new Date().toISOString(),
-      });
 
       setThreads((prevThreads) =>
         prevThreads.map((t) => {
@@ -393,8 +383,6 @@ export default function VoiceChatPage() {
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
       const duration = callDurationRef.current;
-      const errors = [...sessionErrorsRef.current];
-      sessionErrorsRef.current = [];
 
       // Accumulate used seconds locally for ALL users (free + premium)
       if (duration > 0) {
@@ -406,12 +394,11 @@ export default function VoiceChatPage() {
       const sessionMessages = latestThread?.messages || [];
 
       if (duration >= 5 && telegramId) {
-        console.log(`[Session] Saving voice session for user ${telegramId} (${duration}s, ${sessionMessages.length} msgs, ${errors.length} errors)...`);
+        console.log(`[Session] Saving voice session for user ${telegramId} (${duration}s, ${sessionMessages.length} msgs)...`);
         ApiService.post(API_ENDPOINTS.SAVE_VOICE_SESSION, {
           telegramId: telegramId.toString(),
           durationSeconds: duration,
           messages: sessionMessages,
-          errors,
         })
           .then(() => console.log('[Session] Voice session saved successfully.'))
           .catch(err => console.error('[Session] Failed to save voice session:', err));

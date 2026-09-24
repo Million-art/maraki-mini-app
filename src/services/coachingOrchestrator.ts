@@ -41,10 +41,6 @@ export interface CoachingProfile {
     wordsToPractice?: string[];
     keyAchievements?: string[];
   } | null;
-  // Personalized learning & weak area tracking
-  topWeakAreas?: string[];
-  currentFocusTopic?: string | null;
-  nextFocusTopic?: string | null;
   // Existing fields
   lastLesson?: string | null;
   lastLessonId?: string | null;
@@ -52,7 +48,6 @@ export interface CoachingProfile {
   practiceWords?: string[];
   vocabularyCount?: number;
   currentStreak?: number;
-  longestStreak?: number;
   lastSessionDate?: string;
   interests?: string[];
   assessment?: {
@@ -87,13 +82,9 @@ export async function buildSessionInstruction(
     profile.level = raw.level || raw.assessment?.level || raw.user?.level;
     profile.nativeLanguage = raw.nativeLanguage || raw.user?.nativeLanguage;
     profile.weaknesses = raw.weaknesses || raw.user?.weaknesses;
-    profile.topWeakAreas = raw.topWeakAreas || raw.user?.topWeakAreas || [];
-    profile.currentFocusTopic = raw.currentFocusTopic || raw.user?.currentFocusTopic || null;
-    profile.nextFocusTopic = raw.nextFocusTopic || raw.user?.nextFocusTopic || null;
     profile.practiceWords = raw.practiceWords || raw.user?.practiceWords;
     profile.vocabularyCount = raw.vocabularyCount || raw.user?.vocabularyCount;
-    profile.currentStreak = raw.currentStreak ?? raw.user?.currentStreak ?? 0;
-    profile.longestStreak = raw.longestStreak ?? raw.user?.longestStreak ?? 0;
+    profile.currentStreak = raw.currentStreak || raw.user?.currentStreak;
     profile.lastSessionDate = raw.lastSessionDate || raw.user?.lastSessionDate;
     profile.assessment = raw.assessment || null;
     // New session-state fields
@@ -115,27 +106,11 @@ export async function buildSessionInstruction(
 // Universal rules appended to EVERY state's prompt
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildUniversalRules(name: string, profile?: CoachingProfile): string {
-  const weakAreasStr = profile?.topWeakAreas && profile.topWeakAreas.length > 0
-    ? `\n- TARGET WEAK AREAS TO DIAGNOSE: ${profile.topWeakAreas.join(', ')}`
-    : '';
-  const focusTopicStr = profile?.currentFocusTopic
-    ? `\n- SESSION FOCUS GRAMMAR TOPIC: ${profile.currentFocusTopic}`
-    : '';
-
+function buildUniversalRules(name: string): string {
   return `
 ## Absolute Rules (NEVER break these)
 - SPEAK LESS: Every response is 1-2 sentences MAXIMUM. ${name} should speak 3x more than you.
 - NEVER INTERRUPT: Wait 3-5 seconds after ${name}'s complete thought before responding. If they pause briefly, stay silent — they may still be thinking.
-- ERROR DIAGNOSIS & TOOL CALLING:${weakAreasStr}${focusTopicStr}
-  Whenever ${name} makes a mistake (grammar, tense, phrasal verb, article, preposition, or word choice):
-  1. Silently invoke the tool 'report_grammar_mistake' with:
-     - errorType (e.g. reported_speech, phrasal_verbs, tenses, prepositions, articles, subject_verb_agreement, word_order, vocabulary)
-     - errorSubtype (e.g. tense_shift, missing_article, wrong_preposition)
-     - userSaid (the exact phrase user spoke)
-     - correctForm (the corrected version)
-     - explanation (simple, clear explanation)
-     - nativeAlternative (natural idiom/phrasing)
 - CORRECTION FLOW (follow this exactly, every time):
   1. ${name} finishes speaking — wait 3-4 seconds of silence
   2. Acknowledge their CONTENT first: "That's great!" / "Interesting!" / "I see!"
@@ -159,7 +134,7 @@ function buildPrompt(userName: string, profile: CoachingProfile): string {
   const level = normalizeCEFR(
     profile.nextTopic?.level || profile.assessment?.level || profile.level || 'B1'
   );
-  const universalRules = buildUniversalRules(name, profile);
+  const universalRules = buildUniversalRules(name);
 
   // ── STATE 1: First-ever session ────────────────────────────────────────────
   if (profile.isFirstSession) {
