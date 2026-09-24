@@ -202,8 +202,11 @@ export default function VoiceChatPage() {
         const premium = Boolean((d?.isMarakiPremium || d?.isPremium) && !isExpired);
         setIsPremiumUser(premium);
         // Load period-based quota: seconds used this subscription period
-        const usedSeconds = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
-        const quotaSeconds = d?.voiceSecondsQuotaThisPeriod ?? (premium ? 9000 : 120);
+        const usedSeconds = d?.voiceSecondsUsedThisPeriod ?? 0;
+        let quotaSeconds = d?.voiceSecondsQuotaThisPeriod ?? (premium ? 9000 : 120);
+        if (premium && quotaSeconds <= 120) {
+          quotaSeconds = 9000;
+        }
         setLiveVoiceSecondsUsed(usedSeconds);
         setVoiceQuotaSeconds(quotaSeconds);
         setIsQuotaLoaded(true);
@@ -551,8 +554,11 @@ export default function VoiceChatPage() {
         const now = new Date();
         const isExpired = d?.subscriptionExpiresAt ? new Date(d.subscriptionExpiresAt) < now : false;
         currentIsPremium = Boolean((d?.isMarakiPremium || d?.isPremium) && !isExpired);
-        currentUsed = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
+        currentUsed = d?.voiceSecondsUsedThisPeriod ?? 0;
         currentQuota = d?.voiceSecondsQuotaThisPeriod ?? (currentIsPremium ? 9000 : 120);
+        if (currentIsPremium && currentQuota <= 120) {
+          currentQuota = 9000;
+        }
         setIsPremiumUser(currentIsPremium);
         setLiveVoiceSecondsUsed(currentUsed);
         setVoiceQuotaSeconds(currentQuota);
