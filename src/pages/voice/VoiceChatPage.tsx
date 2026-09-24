@@ -298,6 +298,8 @@ export default function VoiceChatPage() {
   const [stuckSuggestion, setStuckSuggestion] = useState<string>('');
 
   useEffect(() => {
+    let suggestionTimeout: any;
+
     const handleStuckSuggestions = (e: any) => {
       const raw = e.detail?.suggestion || e.detail?.suggestions || '';
       let text = '';
@@ -308,16 +310,24 @@ export default function VoiceChatPage() {
       }
       if (text) {
         setStuckSuggestion(text);
+        if (suggestionTimeout) clearTimeout(suggestionTimeout);
+        // Auto-dismiss suggestion after 15s to prevent showing outdated prompts
+        suggestionTimeout = setTimeout(() => {
+          setStuckSuggestion('');
+        }, 15000);
       }
     };
 
     window.addEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
-    return () => window.removeEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
+    return () => {
+      window.removeEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
+      if (suggestionTimeout) clearTimeout(suggestionTimeout);
+    };
   }, []);
 
-  // Clear stuck suggestion when call disconnects or encounters error
+  // Clear stuck suggestion when status changes to avoid showing stale suggestions
   useEffect(() => {
-    if (liveStatus === 'disconnected' || liveStatus === 'error') {
+    if (liveStatus === 'disconnected' || liveStatus === 'error' || liveStatus === 'thinking' || liveStatus === 'speaking') {
       setStuckSuggestion('');
     }
   }, [liveStatus]);

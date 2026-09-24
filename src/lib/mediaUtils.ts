@@ -457,7 +457,8 @@ export class AudioPlayer {
     }
 
     const currentTime = this.audioContext.currentTime;
-    if (this.nextStartTime < currentTime) {
+    // Guard against time drift or old queues from previous turns
+    if (this.nextStartTime < currentTime || this.nextStartTime > currentTime + 1.5) {
       this.nextStartTime = currentTime;
     }
 
@@ -491,6 +492,8 @@ export class AudioPlayer {
     this.activeSources = [];
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.nextStartTime = this.audioContext.currentTime;
+    } else {
+      this.nextStartTime = 0;
     }
   }
 
