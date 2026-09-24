@@ -246,6 +246,7 @@ export class AudioStreamer {
   public isAiSpeaking: boolean = false;
   public onVoiceActivity?: () => void;
   private lastVADTime: number = 0;
+  private lastSpeechTime: number = 0;
   private sampleRate: number = 16000;
 
   constructor(client: GeminiLiveClient) {
@@ -310,8 +311,14 @@ export class AudioStreamer {
                 }
               }
 
-              // Only drop absolute dead silence (rms < 0.001) so Gemini Live server-side VAD hears all soft speech
-              if (rms < 0.001) {
+              const now = Date.now();
+              // Active speech detected
+              if (rms >= 0.007) {
+                this.lastSpeechTime = now;
+              }
+
+              // Drop ambient silence/static noise: only send if speech was active within the last 300ms
+              if (now - this.lastSpeechTime > 300) {
                 return;
               }
 
