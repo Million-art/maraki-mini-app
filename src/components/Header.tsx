@@ -8,8 +8,11 @@ interface HeaderProps {
 
 export default function Header({ onOpenSidebar }: HeaderProps) {
   const { currentStudent } = useSelector((state: RootState) => state.student);
-  
-  const isPremium = currentStudent?.isPremium || currentStudent?.isMarakiPremium;
+  const now = new Date();
+  const isExpired = currentStudent?.subscriptionExpiresAt
+    ? new Date(currentStudent.subscriptionExpiresAt) < now
+    : false;
+  const isPremium = Boolean((currentStudent?.isPremium || currentStudent?.isMarakiPremium) && !isExpired);
 
   return (
     <header className="border-b border-border bg-card">

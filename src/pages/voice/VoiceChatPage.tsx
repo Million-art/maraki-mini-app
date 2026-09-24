@@ -197,7 +197,9 @@ export default function VoiceChatPage() {
     ApiService.get<any>(API_ENDPOINTS.STUDENT_BY_TELEGRAM_ID(telegramId))
       .then((data) => {
         const d = data?.data || data;
-        const premium = d?.isMarakiPremium || d?.isPremium || false;
+        const now = new Date();
+        const isExpired = d?.subscriptionExpiresAt ? new Date(d.subscriptionExpiresAt) < now : false;
+        const premium = Boolean((d?.isMarakiPremium || d?.isPremium) && !isExpired);
         setIsPremiumUser(premium);
         // Load period-based quota: seconds used this subscription period
         const usedSeconds = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
@@ -546,7 +548,9 @@ export default function VoiceChatPage() {
       try {
         const data: any = await ApiService.get(API_ENDPOINTS.STUDENT_BY_TELEGRAM_ID(telegramId));
         const d = data?.data || data;
-        currentIsPremium = d?.isMarakiPremium || d?.isPremium || false;
+        const now = new Date();
+        const isExpired = d?.subscriptionExpiresAt ? new Date(d.subscriptionExpiresAt) < now : false;
+        currentIsPremium = Boolean((d?.isMarakiPremium || d?.isPremium) && !isExpired);
         currentUsed = d?.voiceSecondsUsedThisPeriod ?? d?.liveVoiceSecondsUsed ?? 0;
         currentQuota = d?.voiceSecondsQuotaThisPeriod ?? (currentIsPremium ? 9000 : 120);
         setIsPremiumUser(currentIsPremium);
