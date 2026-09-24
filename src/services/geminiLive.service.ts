@@ -35,7 +35,6 @@ export class GeminiLiveService {
     this.handlers = handlers;
     this.player = new AudioPlayer();
     this.player.onEnded(() => {
-      this.streamer?.setAiSpeaking(false);
       if (this.isConnected && !this.isDestroyed) {
         this.handlers.onStatusChange?.('listening');
       }
@@ -77,7 +76,7 @@ export class GeminiLiveService {
       const baselineFallback = "You are Maraki, a warm and expert English speaking coach. Lead the session with a clear lesson goal. If the user makes a grammar mistake, correct it naturally and ask them to try again. Keep your responses short during live voice   2 to 3 sentences max.";
 
       const combinedInstruction = this.handlers.systemInstruction
-        ? `${this.handlers.systemInstruction}\n\n## Patience & Natural Flow Rules\n- NEVER interrupt the learner while they are speaking or taking a natural pause to think. Wait until they finish their complete thought.\n- NO INFINITE CORRECTION LOOPS. Do NOT force the learner to repeat phrases or corrections over and over. If you offer a correction or suggestion once, IMMEDIATELY move on to a new conversation thought.\n- DO NOT repeatedly say "You can say...". Have a natural, friendly two-way conversation.\n- SILENCE IS NORMAL: Never say 'no speech' or complain about silence. Wait patiently.`
+        ? `${this.handlers.systemInstruction}\n\n## Patience & Natural Flow Rules\n- NEVER interrupt the learner while they are speaking or taking a natural pause to think. Wait until they finish their complete thought.\n- NO INFINITE CORRECTION LOOPS. Do NOT force the learner to repeat phrases or corrections over and over. If you offer a correction or suggestion once, IMMEDIATELY move on to a new conversation thought.\n- DO NOT repeatedly say "You can say...". Have a natural, friendly two-way conversation.`
         : baselineFallback;
 
       if (this.isDestroyed) {
@@ -148,13 +147,11 @@ export class GeminiLiveService {
         case MultimodalLiveResponseType.SETUP_COMPLETE:
           // Live session established — immediately prompt the coach to deliver its opening greeting
           console.log('[Gemini Live] Setup complete received. Triggering opening greeting from coach.');
-          this.streamer?.setAiSpeaking(true);
           this.client.sendTextMessage("Start the conversation now by greeting me warmly as instructed.");
           break;
 
         case MultimodalLiveResponseType.AUDIO:
           if (res.data) {
-            this.streamer?.setAiSpeaking(true);
             this.handlers.onStatusChange?.('speaking');
             this.player?.playChunk(res.data);
           }
@@ -174,12 +171,11 @@ export class GeminiLiveService {
 
         case MultimodalLiveResponseType.INTERRUPTED:
           this.player?.stop();
-          this.streamer?.setAiSpeaking(false);
           this.handlers.onStatusChange?.('listening');
           break;
 
         case MultimodalLiveResponseType.TURN_COMPLETE:
-          // AudioPlayer onEnded will return status to 'listening' and unmute streamer
+          this.handlers.onStatusChange?.('listening');
           break;
 
         case MultimodalLiveResponseType.TEXT:
@@ -201,7 +197,6 @@ export class GeminiLiveService {
       if (!this.streamer) {
         this.streamer = new AudioStreamer(this.client);
         this.streamer.onVoiceActivity = () => {
-          this.player?.stop();
           this.handlers.onStatusChange?.('thinking');
         };
       }
