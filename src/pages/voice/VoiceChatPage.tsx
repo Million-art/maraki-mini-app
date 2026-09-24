@@ -400,8 +400,8 @@ export default function VoiceChatPage() {
           durationSeconds: duration,
           messages: sessionMessages,
         })
-          .then(() => console.log('[Session] Summary saved and Telegram report triggered successfully.'))
-          .catch(err => console.error('[Session] Failed to save voice session summary:', err));
+          .then(() => console.log('[Session] Voice session saved successfully.'))
+          .catch(err => console.error('[Session] Failed to save voice session:', err));
       }
       setCallDuration(0);
     }
