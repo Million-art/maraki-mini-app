@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 interface UIState {
   isDarkMode: boolean;
+  showConfetti: boolean;
   notifications: Notification[];
 }
 
@@ -15,6 +16,7 @@ interface Notification {
 
 const initialState: UIState = {
   isDarkMode: false,
+  showConfetti: false,
   notifications: [],
 };
 
@@ -27,6 +29,12 @@ const uiSlice = createSlice({
     },
     setDarkMode: (state, action: PayloadAction<boolean>) => {
       state.isDarkMode = action.payload;
+    },
+    showConfetti: (state) => {
+      state.showConfetti = true;
+    },
+    hideConfetti: (state) => {
+      state.showConfetti = false;
     },
     addNotification: (state, action: PayloadAction<Omit<Notification, 'id' | 'timestamp'>>) => {
       const notification: Notification = {
@@ -48,6 +56,8 @@ const uiSlice = createSlice({
 export const {
   toggleDarkMode,
   setDarkMode,
+  showConfetti,
+  hideConfetti,
   addNotification,
   removeNotification,
   clearNotifications,
