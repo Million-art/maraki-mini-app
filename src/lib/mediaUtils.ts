@@ -243,12 +243,17 @@ export class AudioStreamer {
   private mediaStream: MediaStream | null = null;
   private audioSource: MediaStreamAudioSourceNode | null = null;
   public isStreaming: boolean = false;
+  public isAiSpeaking: boolean = false;
   public onVoiceActivity?: () => void;
   private lastVADTime: number = 0;
   private sampleRate: number = 16000;
 
   constructor(client: GeminiLiveClient) {
     this.client = client;
+  }
+
+  public setAiSpeaking(speaking: boolean) {
+    this.isAiSpeaking = speaking;
   }
 
   public async start(deviceId?: string): Promise<boolean> {
@@ -281,7 +286,8 @@ export class AudioStreamer {
           this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-capture-processor');
 
           this.audioWorkletNode.port.onmessage = (event) => {
-            if (!this.isStreaming) return;
+            // Echo prevention: NEVER stream mic to Gemini while AI is speaking through device speakers
+            if (!this.isStreaming || this.isAiSpeaking) return;
             if (event.data.type === 'audio') {
               const inputData: Float32Array = event.data.data;
               
@@ -457,8 +463,7 @@ export class AudioPlayer {
     }
 
     const currentTime = this.audioContext.currentTime;
-    // Guard against time drift or old queues from previous turns
-    if (this.nextStartTime < currentTime || this.nextStartTime > currentTime + 1.5) {
+    if (this.nextStartTime < currentTime) {
       this.nextStartTime = currentTime;
     }
 
@@ -492,8 +497,6 @@ export class AudioPlayer {
     this.activeSources = [];
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.nextStartTime = this.audioContext.currentTime;
-    } else {
-      this.nextStartTime = 0;
     }
   }
 

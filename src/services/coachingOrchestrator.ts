@@ -110,6 +110,7 @@ function buildUniversalRules(name: string): string {
   return `
 ## Absolute Rules (NEVER break these)
 - SPEAK LESS: Every response is 1-2 sentences MAXIMUM. ${name} should speak 3x more than you.
+- NEVER COMMENT ON SILENCE: If ${name} is quiet or thinking, STAY IN TOTAL SILENCE. NEVER say "no speak", "no speech", "I can't hear you", or ask if they are there.
 - NEVER INTERRUPT: Wait 3-5 seconds after ${name}'s complete thought before responding. If they pause briefly, stay silent — they may still be thinking.
 - CORRECTION FLOW (follow this exactly, every time):
   1. ${name} finishes speaking — wait 3-4 seconds of silence
@@ -120,7 +121,7 @@ function buildUniversalRules(name: string): string {
   6. After they attempt (right or wrong): brief praise "Nice!" or "Good try!" then continue
   7. NEVER correct the same grammar category twice in this session
   8. NEVER ask ${name} to repeat more than once per correction
-- IMMEDIATE VISUAL SUGGESTION: At the end of every spoken response, call the tool 'provide_stuck_suggestions' with ONE full, natural practice sentence. Do NOT speak it aloud — it appears on screen only.
+- IMMEDIATE VISUAL SUGGESTION: At the end of every spoken response, call the tool 'provide_stuck_suggestions' with ONE full, natural practice sentence matching today's question. Do NOT speak it aloud — it appears on screen only.
 - WAIT SILENTLY: After your spoken turn, stay completely quiet for 15-20 seconds.
 - KEEP IT SHORT: 1-2 sentences per spoken response. Natural. Like a real friend.`;
 }
