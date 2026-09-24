@@ -144,6 +144,12 @@ export class GeminiLiveService {
         return;
       }
       switch (res.type) {
+        case MultimodalLiveResponseType.SETUP_COMPLETE:
+          // Live session established — immediately prompt the coach to deliver its opening greeting
+          console.log('[Gemini Live] Setup complete received. Triggering opening greeting from coach.');
+          this.client.sendTextMessage("Start the conversation now by greeting me warmly as instructed.");
+          break;
+
         case MultimodalLiveResponseType.AUDIO:
           if (res.data) {
             this.handlers.onStatusChange?.('speaking');
