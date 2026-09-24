@@ -155,46 +155,58 @@ export class ReportGrammarMistakeTool extends FunctionCallDefinition {
   constructor() {
     super(
       'report_grammar_mistake',
-      'Reports a grammar, pronunciation, or phrasing mistake made by the user. Must be called before continuing the conversation. IMPORTANT: DO NOT call this if the user is just pausing, thinking, or if the sentence is incomplete (e.g. "I think I..."). ONLY correct full, completed thoughts.',
+      'Reports a grammar, phrasing, or vocabulary mistake made by the student. Call this when you provide a gentle correction.',
       {
         type: 'object',
         properties: {
-          originalText: {
+          errorType: {
             type: 'string',
-            description: 'The exact incorrect sentence or phrase the user spoke.',
+            description: "Category of mistake: 'reported_speech', 'phrasal_verbs', 'verb_tenses', 'prepositions', 'articles', 'word_choice', 'pronunciation', 'subject_verb_agreement', or 'sentence_structure'.",
           },
-          correctedText: {
+          errorSubtype: {
             type: 'string',
-            description: 'The grammatically correct version of what the user said.',
+            description: "Specific sub-pattern e.g. 'past_tense_shift', 'missing_article', 'wrong_preposition'.",
           },
-          mistakeType: {
+          userSaid: {
             type: 'string',
-            description: "A short classification of the mistake (e.g., 'Verb Tense', 'Pronunciation', 'Preposition').",
+            description: 'The exact incorrect phrase or sentence spoken by the student.',
+          },
+          correctForm: {
+            type: 'string',
+            description: 'The correct, natural English sentence.',
           },
           explanation: {
             type: 'string',
-            description: 'A brief, friendly explanation of why it was wrong and how to fix it.',
+            description: 'Short pedagogical explanation of why this is corrected.',
           },
           nativeAlternative: {
             type: 'string',
-            description: 'A natural, native-sounding alternative way to say the sentence.',
+            description: 'A native, highly natural alternative phrase.',
           },
         },
       },
-      ['originalText', 'correctedText', 'mistakeType', 'explanation', 'nativeAlternative'],
+      ['errorType', 'userSaid', 'correctForm', 'explanation'],
     );
   }
 
   functionToCall(parameters: {
-    originalText: string;
-    correctedText: string;
-    mistakeType: string;
+    errorType: string;
+    errorSubtype?: string;
+    userSaid: string;
+    correctForm: string;
     explanation: string;
-    nativeAlternative: string;
+    nativeAlternative?: string;
   }): { success: boolean } {
-    console.log(`📝 Grammar Mistake Detected:`, parameters);
+    console.log(`📝 Diagnostic Error Tagged:`, parameters);
     window.dispatchEvent(
-      new CustomEvent('maraki_grammar_mistake', { detail: parameters })
+      new CustomEvent('maraki_grammar_mistake', { detail: {
+        ...parameters,
+        originalText: parameters.userSaid,
+        correctedText: parameters.correctForm,
+        mistakeType: parameters.errorType,
+        nativeAlternative: parameters.nativeAlternative || parameters.correctForm,
+        timestamp: new Date().toISOString(),
+      }})
     );
     return { success: true };
   }
