@@ -293,8 +293,8 @@ export class AudioStreamer {
               const rms = Math.sqrt(sumSq / (inputData.length / 4));
 
               if (this.onVoiceActivity) {
-                // Simple RMS threshold for voice activity detection
-                if (rms > 0.03) {
+                // Voice activity detection threshold for UI indicator
+                if (rms > 0.01) {
                   const now = Date.now();
                   // Debounce thinking state updates to once every 500ms
                   if (now - this.lastVADTime > 500) {
@@ -304,8 +304,8 @@ export class AudioStreamer {
                 }
               }
 
-              // SILENCE GATE VAD: If audio volume is below speech threshold (rms < 0.015), skip sending PCM audio chunks to save API costs
-              if (rms < 0.015) {
+              // Only drop absolute dead silence (rms < 0.001) so Gemini Live server-side VAD hears all soft speech
+              if (rms < 0.001) {
                 return;
               }
 

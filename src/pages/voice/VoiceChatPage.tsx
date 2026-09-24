@@ -315,9 +315,9 @@ export default function VoiceChatPage() {
     return () => window.removeEventListener('maraki_stuck_suggestions', handleStuckSuggestions);
   }, []);
 
-  // Clear stuck suggestion when status moves away from listening
+  // Clear stuck suggestion when call disconnects or encounters error
   useEffect(() => {
-    if (liveStatus !== 'listening') {
+    if (liveStatus === 'disconnected' || liveStatus === 'error') {
       setStuckSuggestion('');
     }
   }, [liveStatus]);
@@ -374,30 +374,7 @@ export default function VoiceChatPage() {
     };
   }, [liveStatus]);
 
-  // Single-Fire Immediate Suggestion Nudge (Fires ONCE per AI turn)
-  const hasNudgedRef = useRef(false);
 
-  useEffect(() => {
-    if (liveStatus === 'speaking' || liveStatus === 'thinking') {
-      hasNudgedRef.current = false;
-    }
-
-    let timer: any;
-    if (liveStatus === 'listening' && liveServiceRef.current && !hasNudgedRef.current) {
-      hasNudgedRef.current = true;
-      timer = setTimeout(() => {
-        if (liveServiceRef.current && !stuckSuggestion) {
-          console.log('[Immediate Suggestion] AI finished speaking   requesting visual practice sentence tool call.');
-          liveServiceRef.current.sendTextMessage(
-            '[Your turn just ended. Call the tool "provide_stuck_suggestions" with ONE full, complete, natural practice sentence that answers your question or continues your thought. DO NOT speak audio   remain patient and quiet in silence so the student can read it out loud.]'
-          );
-        }
-      }, 200);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [liveStatus, stuckSuggestion]);
 
   // Save session and reset timer when a call ends for any reason
   const callDurationRef = useRef(callDuration);
@@ -895,7 +872,7 @@ export default function VoiceChatPage() {
 
           {/* Visual AI Single Full Practice Sentence   Displayed ONLY when user is stuck (via AI tool call) */}
           <AnimatePresence mode="wait">
-            {liveStatus === 'listening' && stuckSuggestion && (
+            {isFullyConnected && stuckSuggestion && (
               <motion.div
                 key={stuckSuggestion}
                 initial={{ opacity: 0, y: -8, scale: 0.95 }}
