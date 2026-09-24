@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-export type ComingSoonType = 'exam' | 'ielts' | 'sat';
+export type ComingSoonType = 'ielts' | 'sat';
 
 interface ComingSoonConfig {
   title: string;
@@ -19,26 +19,6 @@ interface ComingSoonConfig {
 }
 
 const configs: Record<ComingSoonType, ComingSoonConfig> = {
-  exam: {
-    title: 'University & National Exams',
-    category: 'Ethiopian Curriculum',
-    subtitle: 'AI-Powered University Exit Exam, Remedial & Grade 12 Practice with Real-Time Explanations.',
-    amharicDescription: 'የዩኒቨርሲቲ መውጫ ፈተናዎች (Exit Exam) እና የ12ኛ ክፍል ፈተናዎችን በAI የተደገፈ ጥያቄና መልስ በቅርቡ ይጠብቁ።',
-    features: [
-      {
-        title: 'MoE Aligned Question Bank',
-        desc: 'Curated official exam standards with detailed step-by-step rationales.',
-      },
-      {
-        title: 'Timed Mock Simulation',
-        desc: 'Experience real exam conditions with automated score breakdown.',
-      },
-      {
-        title: 'Instant Amharic Clarifications',
-        desc: 'Complex concepts simplified in clear, easy-to-grasp Amharic explanations.',
-      },
-    ],
-  },
   ielts: {
     title: 'IELTS Academic & General',
     category: 'Scholarship & Global Prep',
@@ -83,7 +63,7 @@ const configs: Record<ComingSoonType, ComingSoonConfig> = {
 
 export const ComingSoonPage: React.FC<{ type: ComingSoonType }> = ({ type }) => {
   const navigate = useNavigate();
-  const config = configs[type] || configs.exam;
+  const config = configs[type] || configs.ielts;
   const storageKey = `maraki_notify_${type}`;
 
   const [isNotified, setIsNotified] = useState<boolean>(() => {

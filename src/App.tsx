@@ -93,7 +93,6 @@ export default function App() {
                 <Route path="/" element={<Layout />}>
                   <Route index element={<VoiceChatPage />} />
                   <Route path="voice" element={<VoiceChatPage />} />
-                  <Route path="exam" element={<ComingSoonPage type="exam" />} />
                   <Route path="ielts" element={<ComingSoonPage type="ielts" />} />
                   <Route path="sat" element={<ComingSoonPage type="sat" />} />
                   <Route path="*" element={<VoiceChatPage />} />

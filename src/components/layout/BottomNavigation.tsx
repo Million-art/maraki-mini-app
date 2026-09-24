@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Mic,
-  GraduationCap,
   Globe2,
   Sparkles
 } from 'lucide-react';
@@ -22,12 +21,6 @@ const navItems: NavItem[] = [
     label: 'Speaking',
     path: '/',
     icon: Mic,
-  },
-  {
-    id: 'exam',
-    label: 'Exam',
-    path: '/exam',
-    icon: GraduationCap,
   },
   {
     id: 'ielts',
