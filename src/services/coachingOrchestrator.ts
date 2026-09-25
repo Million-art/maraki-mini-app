@@ -123,7 +123,7 @@ function buildUniversalRules(name: string): string {
   6. After they attempt (right or wrong): brief praise "Nice!" or "Good try!" then continue
   7. NEVER correct the same grammar category twice in this session
   8. NEVER ask ${name} to repeat more than once per correction
-- IMMEDIATE VISUAL SUGGESTION: At the end of every spoken response, call the tool 'provide_stuck_suggestions' with ONE full, natural practice sentence matching today's question. Do NOT speak it aloud — it appears on screen only.
+- GRACEFUL WRAP-UP: If you receive a wrap-up directive or the session limit is reached, give a warm, brief 1-sentence farewell thanking ${name} for practicing today and encouraging them, then conclude.
 - WAIT SILENTLY: After your spoken turn, stay completely quiet for 15-20 seconds.
 - KEEP IT SHORT: 1-2 sentences per spoken response. Natural. Like a real friend.`;
 }

@@ -145,6 +145,7 @@ export default function VoiceChatPage() {
   const [isQuotaLoaded, setIsQuotaLoaded] = useState<boolean>(false);
   const [showDemoModal, setShowDemoModal] = useState<boolean>(false);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
+  const isWrappingUpRef = useRef<boolean>(false);
 
   const handleUpgradeClick = () => {
     const botUsername = import.meta.env.VITE_BOT_USERNAME || 'marakiai_bot';
@@ -348,15 +349,6 @@ export default function VoiceChatPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Hard Max Call Duration Cap (10 Mins)
-  useEffect(() => {
-    if (callDuration >= 600 && liveServiceRef.current) {
-      console.log('[Cost Protection] 10-minute session limit reached   ending call.');
-      liveServiceRef.current.endSession();
-      setLiveStatus('disconnected');
-    }
-  }, [callDuration]);
-
   // Idle Silence Safety Auto-Disconnect (120s of quiet in listening state)
   useEffect(() => {
     let idleTimer: any;
@@ -382,6 +374,7 @@ export default function VoiceChatPage() {
 
   useEffect(() => {
     if (liveStatus === 'disconnected' || liveStatus === 'error') {
+      isWrappingUpRef.current = false;
       const duration = callDurationRef.current;
 
       // Accumulate used seconds locally for ALL users (free + premium)
@@ -456,29 +449,51 @@ export default function VoiceChatPage() {
     };
   }, []);
 
-  // Period Quota Enforcer   works for ALL users (free: 120s total, premium: their purchased quota)
+  // Period Quota & Session Duration Enforcer with Graceful AI Wrap-Up
   useEffect(() => {
     if (!isCallActive) return;
     const totalUsed = liveVoiceSecondsUsed + callDuration;
 
-    if (isPremiumUser) {
-      // Premium: enforce against their purchased period quota (e.g. 9,000s for monthly)
-      if (voiceQuotaSeconds > 0 && totalUsed >= voiceQuotaSeconds) {
-        console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s)   ending call.`);
-        const service = liveServiceRef.current;
-        liveServiceRef.current = null;
-        service?.endSession();
-        setLiveStatus('disconnected');
-        setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
-      }
-    } else {
-      // Free users: 120s total cap
-      if (totalUsed >= 120) {
-        const service = liveServiceRef.current;
-        liveServiceRef.current = null;
-        service?.endSession();
-        setLiveStatus('disconnected');
-        setShowDemoModal(true);
+    // Calculate effective remaining seconds for this call session
+    let remaining = 600 - callDuration; // 10 min hard max
+    if (isPremiumUser && voiceQuotaSeconds > 0) {
+      remaining = Math.min(remaining, Math.max(0, voiceQuotaSeconds - totalUsed));
+    } else if (!isPremiumUser) {
+      remaining = Math.min(remaining, Math.max(0, 120 - totalUsed));
+    }
+
+    // Graceful AI Wrap-up Trigger (~20 seconds before limit)
+    if (remaining <= 20 && remaining > 0 && !isWrappingUpRef.current && liveServiceRef.current) {
+      isWrappingUpRef.current = true;
+      console.log(`[Quota] Call nearing limit (${remaining}s remaining). Prompting AI coach for graceful wrap-up.`);
+      liveServiceRef.current.triggerSessionWrapUp();
+    }
+
+    // Session Termination when limit is reached
+    if (remaining <= 0) {
+      if (isPremiumUser) {
+        if (voiceQuotaSeconds > 0 && totalUsed >= voiceQuotaSeconds) {
+          console.log(`[Quota] Premium user exhausted period quota (${voiceQuotaSeconds}s) — ending call.`);
+          const service = liveServiceRef.current;
+          liveServiceRef.current = null;
+          service?.endSession();
+          setLiveStatus('disconnected');
+          setLiveError('🎯 You have used all your Voice minutes for this subscription period. Text practice and lessons continue as normal!');
+        } else if (callDuration >= 600) {
+          console.log('[Cost Protection] 10-minute session limit reached — ending call.');
+          const service = liveServiceRef.current;
+          liveServiceRef.current = null;
+          service?.endSession();
+          setLiveStatus('disconnected');
+        }
+      } else {
+        if (totalUsed >= 120) {
+          const service = liveServiceRef.current;
+          liveServiceRef.current = null;
+          service?.endSession();
+          setLiveStatus('disconnected');
+          setShowDemoModal(true);
+        }
       }
     }
   }, [callDuration, liveStatus, isPremiumUser, liveVoiceSecondsUsed, voiceQuotaSeconds, isCallActive]);
@@ -552,6 +567,7 @@ export default function VoiceChatPage() {
     }
 
     setLiveError(null);
+    isWrappingUpRef.current = false;
     setLiveStatus('connecting'); // Show connecting state immediately
 
     let systemInstruction: string | undefined = undefined;

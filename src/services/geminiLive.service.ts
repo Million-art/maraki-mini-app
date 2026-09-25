@@ -28,6 +28,7 @@ export class GeminiLiveService {
   private sessionStartTime: number = 0;
   private isConnected: boolean = false;
   private isDestroyed: boolean = false;
+  private isWrappingUp: boolean = false;
   private handlers: LiveSessionHandlers = {};
 
   constructor(telegramId: number, handlers: LiveSessionHandlers) {
@@ -254,6 +255,15 @@ export class GeminiLiveService {
     }
   }
 
+  triggerSessionWrapUp(customDirective?: string): void {
+    if (this.isWrappingUp || !this.isConnected || !this.client) return;
+    this.isWrappingUp = true;
+    const directive =
+      customDirective ||
+      'Wrap up our speaking practice session now with a warm, encouraging 1-sentence farewell thanking me for practicing today and saying goodbye.';
+    this.client.sendTextMessage(directive);
+  }
+
   endSession(): void {
     this.isDestroyed = true;
     this.handleDisconnect();
@@ -262,6 +272,7 @@ export class GeminiLiveService {
   private handleDisconnect(): void {
     this.isDestroyed = true;
     this.isConnected = false;
+    this.isWrappingUp = false;
 
     const durationSeconds = this.sessionStartTime > 0 ? (Date.now() - this.sessionStartTime) / 1000 : 0;
     this.sessionStartTime = 0;
