@@ -174,7 +174,7 @@ export class GeminiLiveClient {
 
     const setupMsg: any = {
       setup: {
-        model: 'models/gemini-3.8-live',
+        model: 'models/gemini-3.1-flash-live-preview',
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {

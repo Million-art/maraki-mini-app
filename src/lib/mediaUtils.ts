@@ -246,7 +246,6 @@ export class AudioStreamer {
   public isAiSpeaking: boolean = false;
   public onVoiceActivity?: () => void;
   private lastVADTime: number = 0;
-  private lastSpeechTime: number = 0;
   private sampleRate: number = 16000;
 
   constructor(client: GeminiLiveClient) {
@@ -287,44 +286,27 @@ export class AudioStreamer {
           this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-capture-processor');
 
           this.audioWorkletNode.port.onmessage = (event) => {
-            // Echo prevention: NEVER stream mic to Gemini while AI is speaking through device speakers
             if (!this.isStreaming || this.isAiSpeaking) return;
             if (event.data.type === 'audio') {
               const inputData: Float32Array = event.data.data;
-              
+
               let sumSq = 0;
-              // Sample a subset of the array for performance & silence gating
               for (let i = 0; i < inputData.length; i += 4) {
                 sumSq += inputData[i] * inputData[i];
               }
               const rms = Math.sqrt(sumSq / (inputData.length / 4));
 
-              if (this.onVoiceActivity) {
-                // Voice activity detection threshold for UI indicator
-                if (rms > 0.01) {
-                  const now = Date.now();
-                  // Debounce thinking state updates to once every 500ms
-                  if (now - this.lastVADTime > 500) {
-                    this.onVoiceActivity();
-                    this.lastVADTime = now;
-                  }
+              if (this.onVoiceActivity && rms > 0.008) {
+                const now = Date.now();
+                if (now - this.lastVADTime > 400) {
+                  this.onVoiceActivity();
+                  this.lastVADTime = now;
                 }
-              }
-
-              const now = Date.now();
-              // Active speech detected
-              if (rms >= 0.007) {
-                this.lastSpeechTime = now;
-              }
-
-              // Drop ambient silence/static noise: only send if speech was active within the last 300ms
-              if (now - this.lastSpeechTime > 300) {
-                return;
               }
 
               const pcm16Data = this.convertToPCM16(inputData);
               const base64Audio = this.arrayBufferToBase64(pcm16Data);
-              if (this.client.connected) {
+              if (this.client && this.client.connected) {
                 this.client.sendAudioChunk(base64Audio);
               }
             }

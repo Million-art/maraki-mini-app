@@ -29,6 +29,7 @@ export class GeminiLiveService {
   private isConnected: boolean = false;
   private isDestroyed: boolean = false;
   private isWrappingUp: boolean = false;
+  private thinkingTimer: any = null;
   private handlers: LiveSessionHandlers = {};
 
   constructor(telegramId: number, handlers: LiveSessionHandlers) {
@@ -152,6 +153,10 @@ export class GeminiLiveService {
           break;
 
         case MultimodalLiveResponseType.AUDIO:
+          if (this.thinkingTimer) {
+            clearTimeout(this.thinkingTimer);
+            this.thinkingTimer = null;
+          }
           if (res.data) {
             this.handlers.onStatusChange?.('speaking');
             this.player?.playChunk(res.data);
@@ -171,11 +176,19 @@ export class GeminiLiveService {
           break;
 
         case MultimodalLiveResponseType.INTERRUPTED:
+          if (this.thinkingTimer) {
+            clearTimeout(this.thinkingTimer);
+            this.thinkingTimer = null;
+          }
           this.player?.stop();
           this.handlers.onStatusChange?.('listening');
           break;
 
         case MultimodalLiveResponseType.TURN_COMPLETE:
+          if (this.thinkingTimer) {
+            clearTimeout(this.thinkingTimer);
+            this.thinkingTimer = null;
+          }
           this.handlers.onStatusChange?.('listening');
           break;
 
@@ -199,6 +212,12 @@ export class GeminiLiveService {
         this.streamer = new AudioStreamer(this.client);
         this.streamer.onVoiceActivity = () => {
           this.handlers.onStatusChange?.('thinking');
+          if (this.thinkingTimer) clearTimeout(this.thinkingTimer);
+          this.thinkingTimer = setTimeout(() => {
+            if (this.isConnected && !this.isDestroyed) {
+              this.handlers.onStatusChange?.('listening');
+            }
+          }, 3000);
         };
       }
       await this.streamer.start(micDeviceId);
@@ -273,6 +292,10 @@ export class GeminiLiveService {
     this.isDestroyed = true;
     this.isConnected = false;
     this.isWrappingUp = false;
+    if (this.thinkingTimer) {
+      clearTimeout(this.thinkingTimer);
+      this.thinkingTimer = null;
+    }
 
     const durationSeconds = this.sessionStartTime > 0 ? (Date.now() - this.sessionStartTime) / 1000 : 0;
     this.sessionStartTime = 0;
