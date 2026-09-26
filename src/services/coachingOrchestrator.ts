@@ -134,16 +134,16 @@ function buildUniversalRules(name: string): string {
 
 function buildPrompt(userName: string, profile: CoachingProfile): string {
   const name = userName || 'there';
-  const level = normalizeCEFR(
-    profile.nextTopic?.level || profile.assessment?.level || profile.level || 'B1'
-  );
+  const rawLevel = profile.nextTopic?.level || profile.assessment?.level || profile.level;
+  const isUntested = !rawLevel || rawLevel.toUpperCase() === 'UNTESTED';
+  const level = isUntested ? 'UNTESTED' : normalizeCEFR(rawLevel);
   const universalRules = buildUniversalRules(name);
 
-  // ── STATE 1: First-ever session ────────────────────────────────────────────
-  if (profile.isFirstSession) {
-    const assessmentLine = profile.assessment
+  // ── STATE 1: First-ever session or UNTESTED user ───────────────────────────
+  if (profile.isFirstSession || isUntested) {
+    const assessmentLine = profile.assessment && !isUntested
       ? `\n\nI can see you've already completed a diagnostic assessment — you're at ${level} level. Great starting point! I'll keep that in mind as we chat.`
-      : '';
+      : `\n\n${name} has not completed a diagnostic assessment yet (UNTESTED). Speak gently at an accessible, friendly introductory level (A1/A2 baseline) to build their confidence.`;
 
     const weaknessLine = profile.assessment?.weakness
       ? `\n\nYour assessment shows your main area to grow is: ${profile.assessment.weakness}. I'll gently help you practice that naturally in our conversation.`
